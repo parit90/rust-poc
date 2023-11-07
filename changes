@@ -1,0 +1,7 @@
+   KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://10.166.0.12:9092,PLAINTEXT_HOST://kafka:9093
+
+   .env file
+
+   kafka.rs for producer IP
+
+   change in main.rs for running the server

@@ -1,0 +1,134 @@
+<upi: ReqPay xmlns:upi="http://npci.org/upi/schema/">
+    <Head ver="1.0|2.0" ts="" orgId="" msgId="" prodType="UPI|IMPS|AEPS"/>
+    <Meta>
+        <Tag name="PAYREQSTART" value=""/>
+        <Tag name="PAYREQEND" value=""/>
+    </Meta>
+    <Txn id="" note="" custRef="" refId="" refUrl="" ts="" refCategory="" type="PAY|COLLECT|DEBIT|CREDIT|REVERSAL|REFUND" orgTxnId="" purpose="" initiationMode="" subType="" orgRespCode="">
+        <RiskScore>
+            <Score provider="sp" type="TXNRISK" value=""/>
+            <Score provider="npci" type="TXNRISK" value=""/>
+        </RiskScore>
+        <Rules>
+            <Rule name="EXPIREAFTER" value="1 minute to max 64800 minutes"/>
+            <Rule name="MINAMOUNT" value=""/>
+        </Rules>
+        <QR qVer="" ts="" qrMedium="" expireTs="" query="" verToken="" stan=""/>
+    </Txn>
+    <Payer addr="" name="" seqNum="" type="PERSON|ENTITY" code="">
+        <Merchant>
+            <identifier subCode="" mid="" sid="" tid="" merchantType="SMALL|LARGE" merchantGenre="OFFLINE|ONLINE" onBoardingType="BANK|AGGREGATOR|NETWORK|TPAP" pinCode="" regIdNo="" tier="" merchantLoc="" merchantInstId=""/>
+            <Ownership type="PROPRIETARY|PARTNERSHIP|PRIVATE|PUBLIC|OTHERS"/>
+                <Invoice name="" num="" date="" />
+        </Merchant>
+        <Institution type="MTO|BANK" route="MTSS|RDA">
+            <Name value="" acNum=""/>
+            <Purpose code="" note=""/>
+            <Originator name="" type="INDIVIDUAL|COMPANY" refNo="">
+                <Address location="" city="" country="" geocode=""/>
+            <Originator>
+            <Beneficiary name=""/>
+        </Institution>
+        <Info>
+            <Identity id="" type="PAN|AADHAR|ACCOUNT" verifiedName=""/>
+            <Rating VerifiedAddress="TRUE|FALSE"/>
+        </Info>
+        <Device>
+            <Tag name="MOBILE" value=""/>
+            <Tag name="GEOCODE" value=""/>
+            <Tag name="LOCATION" value=""/>
+            <Tag name="IP" value=""/>
+            <Tag name="TYPE" value=""/>
+            <Tag name="ID" value=""/>
+            <Tag name="OS" value=""/>
+            <Tag name="APP" value=""/>
+            <Tag name="CAPABILITY" value=""/>
+            <Tag name="TELECOM" value=""/>
+            <Tag name="cardAccpTrId" value=""/>
+            <Tag name="cardAccpIdCode" value=""/>
+            <Tag name="posEntryCode" value=""/>
+            <Tag name="posServCdnCode" value=""/>
+        </Device>
+        <Ac addrType ="AADHAAR">
+            <Detail name="IIN" value=""/>
+            <Detail name="UIDNUM" value=""/>
+        </Ac>
+        <Ac addrType="ACCOUNT">
+            <Detail name="IFSC" value=""/>
+            <Detail name="ACTYPE" value=""/>
+            <Detail name="ACNUM" value=""/>
+        </Ac>
+        <Ac addrType="MOBILE">
+            <Detail name="MMID" value=""/>
+            <Detail name="MOBNUM" value=""/>
+        </Ac>
+        <Ac addrType="CARD">
+            <Detail name="ACTYPE" value="SAVINGS|CURRENT|DEFAULT"/>
+            <Detail name="CARDNUM" value=""/>
+        </Ac>
+        <Consent name="GST" type="PAN|AADHAAR|AADHAARTOKEN|PASSPORT|VOTERID|DRIVINGLICENSE" value=""/>
+        <Creds>
+            <Cred type="AADHAAR" subType="AADHAAR-BIO-FP|AADHAAR-BIO-IRIS|AADHAAR-BIO-OTP">
+                <Meta lk="" ac="" sa="" uid="" ver="" />
+                <Data code="" Ki=""> base-64 encoded/encrypted authentication data </Data>
+            </Cred>
+            <Cred type="UPI-Mandate" subType="DS">
+                <Data> base-64 encoded digitally signed UPI-Mandate </Data>
+            </Cred>
+            <Cred type="OTP" subType="SMS|EMAIL|HOTP|TOPT">
+                <Data code="" ki=""> base-64 encoded/encrypted authentication data </Data>
+            </Cred>
+            <Cred type="PIN" subType="MPIN">
+                <Data code="" ki=""> base-64 encoded/encrypted authentication data  </Data>
+            </Cred>
+            <Cred type="CARD" subType="CVV1|CVV2|EMV">
+                <Data code="" ki=""> base-64 encoded/encrypted authentication data  </Data>
+            </Cred>
+            <Cred type="PREAPPROVED" subType="NA">
+                <Data> base-64 encoded </Data>
+            </Cred>
+        </Creds>
+        <Amount value="" curr="INR">
+            <Split name="" value=""/>
+        </Amount>
+    </Payer>
+    <Payees>
+        <Payee addr="" name="" seqNum="" type="PERSON|ENTITY" code="">
+        <Institution QrPayLoad="" conCode="" netInstId=""/>
+            <Merchant>
+                <identifier subCode="" mid="" sid="" tid="" merchantType="SMALL|LARGE" merchantGenre="OFFLINE|ONLINE" onBoardingType="BANK|AGGREGATOR|NETWORK|TPAP" pinCode="" regIdNo="" tier=""/>
+                <Ownership type="PROPRIETARY|PARTNERSHIP|PRIVATE|PUBLIC|OTHERS"/>
+                <Invoice name="" num="" date=""/>
+            </Merchant>
+            <Info>
+                    <Identity id="" type="PAN|AADHAAR|ACCOUNT" verifiedName=""/>
+                    <Rating VerifiedAddress="TRUE|FALSE"/>
+            </Info>
+            <Device>
+                    <Tag name="MOBILE" value=""/>
+                    <Tag name="GEOCODE" value=""/>
+                    <Tag name="LOCATION" value=""/>
+                    <Tag name="IP" value=""/>
+                    <Tag name="TYPE" value=""/>
+                    <Tag name="ID" value=""/>
+                    <Tag name="OS" value=""/>
+                    <Tag name="APP" value=""/>
+                    <Tag name="CAPABILITY" value=""/>
+                    <Tag name="TELECOM" value=""/>
+            </Device>
+            <Ac addrType="AADHAAR">
+                    <Detail name="IIN" value=""/>
+                    <Detail name="UIDNUM" value=""/>
+            </Ac>
+            <Ac addrType="ACCOUNT">
+                    <Detail name="IFSC" value=""/>
+                    <Detail name="ACTYPE" value=""/>
+                    <Detail name="ACNUM" value=""/>
+            </Ac>
+            <Consent name="GST" type="PAN|AADHAAR|AADHAARTOKEN|PASSPORT|VOTERID|DRIVINGLICENSE" value=""/>
+                <Amount value="" curr="INR">
+                    <Split name="" value=""/>
+                </Amount>
+            </Payee>
+        </Payees>
+</upi:ReqPay>

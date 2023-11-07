@@ -1,0 +1,25 @@
+[package]
+name = "upi_poc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[dependencies]
+actix = "0.13.1"
+actix-rt = "2.9.0"
+actix-web = "4.4.0"
+quick-xml = { version = "0.31.0", features = ["serialize"] }
+serde = { version = "1", features = ["derive"] }
+serde-xml-rs = "0.6.0"
+reqwest = { version = "0.11", features = ["blocking"]} 
+openssl = "0.10.57"
+futures = "0.3.28"
+rdkafka = "0.34.0"
+rdkafka-sys = {version = "4.6.0",  features = ["cmake-build"] }
+dotenv = "0.15"
+tokio = "1.33.0"
+lazy_static = "1.4.0"
+flame = "0.2.2"
+num_cpus = "1.14"

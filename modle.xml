@@ -1,0 +1,32 @@
+<upi: ReqPay xmlns:upi="http://npci.org/upi/schema/">
+ <Meta>
+        <Tag name="PAYREQSTART" value=""/>
+        <Tag name="PAYREQEND" value=""/>
+    </Meta>
+<Payer addr="" name="" seqNum="" type="PERSON|ENTITY" code="">
+        <Creds>
+            <Cred type="AADHAAR" subType="AADHAAR-BIO-FP|AADHAAR-BIO-IRIS|AADHAAR-BIO-OTP">
+                <Meta lk="" ac="" sa="" uid="" ver="" />
+                <Data code="" Ki=""> base-64 encoded/encrypted authentication data </Data>
+            </Cred>
+            <Cred type="UPI-Mandate" subType="DS">
+                <Data> base-64 encoded digitally signed UPI-Mandate </Data>
+            </Cred>
+            <Cred type="OTP" subType="SMS|EMAIL|HOTP|TOPT">
+                <Data code="" ki=""> base-64 encoded/encrypted authentication data </Data>
+            </Cred>
+            <Cred type="PIN" subType="MPIN">
+                <Data code="" ki=""> base-64 encoded/encrypted authentication data  </Data>
+            </Cred>
+            <Cred type="CARD" subType="CVV1|CVV2|EMV">
+                <Data code="" ki=""> base-64 encoded/encrypted authentication data  </Data>
+            </Cred>
+            <Cred type="PREAPPROVED" subType="NA">
+                <Data> base-64 encoded </Data>
+            </Cred>
+        </Creds>
+        <Amount value="" curr="INR">
+            <Split name="" value=""/>
+        </Amount>
+    </Payer>
+    </upi:ReqPay>
