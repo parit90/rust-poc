@@ -1,4 +1,4 @@
-use actix_service::boxed::BoxService;
+// use actix_service::boxed::BoxService;
 use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}, Error, dev::{Service,Transform,ServiceRequest, ServiceResponse}, HttpMessage, error::PayloadError, body::MessageBody};
 use futures::{StreamExt, Stream};
 use kafka::create_kafka_producer;
@@ -12,7 +12,7 @@ use dotenv::dotenv;
 use tokio::spawn;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-use flame;
+
 use std::fs::File;
 
 mod models;
@@ -22,11 +22,12 @@ mod credit_req;
 mod resp_pay;
 mod callback;
 mod kafka;
+mod signature;
 extern crate num_cpus;
 
 use rdkafka::error::KafkaError;
 use rdkafka::producer::FutureProducer;
-
+use std::sync::Arc;
 use openssl::rsa::Rsa;
 use openssl::sign::{Signer, Verifier};
 use openssl::hash::MessageDigest;
@@ -103,16 +104,18 @@ async fn process_xml1(data: web::Bytes, app_data: Data<MyURLs>) -> HttpResponse 
 }
 async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     // Deserialize the XML data directly from a reader
-
-    let reader = data.reader();
+    let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
-    
+
     match req_pay {
         Ok(req_pay) => {
-            // Clone the data for validation tasks
-            // let req_pay_clone = req_pay.clone();
-            // let app_data_clone = app_data.clone();
-
+            // Clone the data for v
+              // Create a Mutex to wrap the data
+            let data_mutex = Arc::new(futures::lock::Mutex::new(data));
+            
+            // Clone the data_mutex for use in get_signature
+        
+            let signature = signature::get_signature(req_pay.clone(), &CLIENT).await;
             // Spawn the validation task
             let _validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(
@@ -136,6 +139,9 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
         }
     }
 }
+
+
+
 
 async fn debit_resp_callback(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>>  {
     //println!("Debit resp callback : 5");
@@ -206,25 +212,6 @@ pub struct MyURLs {
     VALIDATE_PSP_URL: String,
 }
 
-fn generate_signature(payload: &str) -> Result<Vec<u8>, openssl::error::ErrorStack> {
-    let PRIVATE_KEY = fs::read_to_string("/Users/sahilpant/.ssh/id_rsa")
-        .expect("Should have been able to read the file");
-    let rsa = Rsa::private_key_from_pem(PRIVATE_KEY.as_bytes())?;
-    let private_key = PKey::from_rsa(rsa)?;
-    let mut signer = Signer::new(MessageDigest::sha256(), &private_key)?;
-    signer.update(payload.as_bytes())?;
-    signer.sign_to_vec()
-}
-
-async fn my_mw(
-    req: ServiceRequest,
-    next: Next<impl MessageBody>,
-) -> Result<ServiceResponse<impl MessageBody>, Error> {
-    // pre-processing
-    next.call(req).await
-    // post-processing
-}
-
 // async fn generate_signature_middleware<S>(
 //     req: ServiceRequest,
 //     srv: BoxService<ServiceRequest, ServiceResponse, Error>,
@@ -279,7 +266,6 @@ async fn main() -> std::io::Result<()> {
         .service(
             web::resource("/respauth/callback")
             .route(web::post().to(resp_auth_callback))
-            .wrap(from_fn(my_mw(req, next)))
         )
         .service(
             web::resource("/debitresp/callback")
@@ -305,11 +291,6 @@ async fn main() -> std::io::Result<()> {
     .bind("0.0.0.0:8080")?
     .run()
     .await?;
-    flame::end("main");
-
-    // Dump the Flamegraph data to a file.
-    let output_file = File::create("flamegraph-output.html").unwrap();
-    flame::dump_html(output_file).unwrap();
     
     Ok(())
 }
