@@ -103,11 +103,11 @@ pub async fn credit_resp_callback(
     // Process the received RespAuthDetail
     // You can add your logic here to handle the received data
 
-    let client_clone = client.clone(); // Clone the client reference
-    let _client_clone = client.clone(); // Clone the client reference
+    let client_clone = Arc::new(client.clone()); // Clone the client reference
+    let _client_clone = Arc::clone(&client_clone); // Clone the client reference
 
-    let app_data = app_data.clone();
-    let _app_data = app_data.clone();
+    let app_data = Arc::new(app_data.clone());
+    let _app_data = Arc::clone(&app_data);
 
     let drd = debit_req_data.clone();
 

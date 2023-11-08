@@ -1,9 +1,12 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}};
+use actix_service::boxed::BoxService;
+use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}, Error, dev::{Service,Transform,ServiceRequest, ServiceResponse}, HttpMessage, error::PayloadError, body::MessageBody};
+use futures::{StreamExt, Stream};
 use kafka::create_kafka_producer;
+use openssl::{sha::Sha256, pkey::PKey};
 use serde_xml_rs::{from_str, from_reader};
 // use quick_xml::se::to_string;
-use reqwest::{Client, Error};
-use std::fmt;
+use reqwest::{Client};
+use std::{fmt, fs, pin::Pin};
 //use std::io;
 use dotenv::dotenv;
 use tokio::spawn;
@@ -19,16 +22,16 @@ mod credit_req;
 mod resp_pay;
 mod callback;
 mod kafka;
-
 extern crate num_cpus;
-extern crate openssl;
+
+use rdkafka::error::KafkaError;
+use rdkafka::producer::FutureProducer;
 
 use openssl::rsa::Rsa;
 use openssl::sign::{Signer, Verifier};
 use openssl::hash::MessageDigest;
 
-use rdkafka::error::KafkaError;
-use rdkafka::producer::FutureProducer;
+use actix_web_lab::middleware::{Next, from_fn};
 
 
 
@@ -98,9 +101,9 @@ async fn process_xml1(data: web::Bytes, app_data: Data<MyURLs>) -> HttpResponse 
     //     }
     // }
 }
-
 async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     // Deserialize the XML data directly from a reader
+
     let reader = data.reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
     
@@ -111,7 +114,7 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
             // let app_data_clone = app_data.clone();
 
             // Spawn the validation task
-            let validate_task = spawn(async move {
+            let _validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(
                     req_pay, 
                     &CLIENT,
@@ -203,18 +206,60 @@ pub struct MyURLs {
     VALIDATE_PSP_URL: String,
 }
 
+fn generate_signature(payload: &str) -> Result<Vec<u8>, openssl::error::ErrorStack> {
+    let PRIVATE_KEY = fs::read_to_string("/Users/sahilpant/.ssh/id_rsa")
+        .expect("Should have been able to read the file");
+    let rsa = Rsa::private_key_from_pem(PRIVATE_KEY.as_bytes())?;
+    let private_key = PKey::from_rsa(rsa)?;
+    let mut signer = Signer::new(MessageDigest::sha256(), &private_key)?;
+    signer.update(payload.as_bytes())?;
+    signer.sign_to_vec()
+}
+
+async fn my_mw(
+    req: ServiceRequest,
+    next: Next<impl MessageBody>,
+) -> Result<ServiceResponse<impl MessageBody>, Error> {
+    // pre-processing
+    next.call(req).await
+    // post-processing
+}
+
+// async fn generate_signature_middleware<S>(
+//     req: ServiceRequest,
+//     srv: BoxService<ServiceRequest, ServiceResponse, Error>,
+// ) -> Result<ServiceResponse, Error>
+// where
+//     S: Service<ServiceRequest, Response = ServiceResponse, Error = Error> + 'static,
+// {
+//     // Generate the signature here
+//     if let Some(payload) = req.extensions().get::<String>() {
+//         if let Ok(signature) = generate_signature(payload) {
+//             // Add the generated signature to the request's extensions
+//             req.extensions_mut().insert(signature);
+//         }
+//     }
+
+//     // Continue processing the request
+//     let response = srv.call(req).await?;
+//     Ok(response)
+// }
+
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-
-    // let num_threads = num_cpus::get();
-    ////println!("Number of CPU threads: {}", num_threads);
 
     let CREDIT_REQ_URL = std::env::var("CREDIT_REQ").unwrap_or_default(); 
     let DEBIT_REQ_URL = std::env::var("DEBIT_REQ").unwrap_or_default();
     let RESP_PAY_URL = std::env::var("RESP_PAY").unwrap_or_default();
     let REQ_TX_CONFIRM_URL = std::env::var("REQ_TX_CONFIRM").unwrap_or_default();
     let VALIDATE_PSP_URL = std::env::var("VALIDATE_PSP").unwrap_or_default();
+
+    // let contents = fs::read_to_string("/Users/sahilpant/.ssh/id_rsa")
+    //     .expect("Should have been able to read the file");
+
+    // println!("With text:\n{contents}");
+
     
 
     let MyURLs = Data::new(MyURLs { 
@@ -225,12 +270,16 @@ async fn main() -> std::io::Result<()> {
         VALIDATE_PSP_URL
     });
 
+    std::env::set_var("RUST_LOG", "actix_web=debug");
+    flame::start("main");
+
     HttpServer::new(move || {
         App::new()
         .app_data(Data::clone( &MyURLs))
         .service(
             web::resource("/respauth/callback")
             .route(web::post().to(resp_auth_callback))
+            .wrap(from_fn(my_mw(req, next)))
         )
         .service(
             web::resource("/debitresp/callback")
@@ -253,10 +302,14 @@ async fn main() -> std::io::Result<()> {
                 .route(web::get().to(testcallback))
         )
     })
-    .workers(8)
     .bind("0.0.0.0:8080")?
     .run()
     .await?;
+    flame::end("main");
+
+    // Dump the Flamegraph data to a file.
+    let output_file = File::create("flamegraph-output.html").unwrap();
+    flame::dump_html(output_file).unwrap();
     
     Ok(())
 }
