@@ -1779,6 +1779,7 @@ dependencies = [
  "actix-web",
  "dotenv",
  "flame",
+ "flate2",
  "futures",
  "lazy_static 1.4.0",
  "num_cpus",

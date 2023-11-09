@@ -4,6 +4,7 @@ use reqwest::Client;
 use crate::models;
 use quick_xml::se::to_string;
 use std::fmt;
+use crate::compression;
 
 // Create a custom error type
 #[derive(Debug)]
@@ -22,6 +23,7 @@ pub async fn resp_pay(
     client: &Client,
     app_data: &String,
 ) -> Result<String, Box<dyn std::error::Error>> {
+  
     let validated_xml = match to_string(&data) {
         Ok(xml) => xml,
         Err(e) => {
@@ -36,11 +38,17 @@ pub async fn resp_pay(
     // let url = app_data;
     //println!("resp_pay ---->{}", url);
 
+
+    let xml_string = to_string(&data).unwrap();
+    let bytes = xml_string.into_bytes();
+    let compressed_data = compression::compress_data( &bytes );
+
+
     // Send the XML data in the request body
     let response = match client
         .post(app_data)
         .header("Content-Type", "application/xml")
-        .body(data)
+        .body(compressed_data)
         .send()
         .await
     {
@@ -83,11 +91,16 @@ pub async fn req_tx_confirm(
     let url = app_data;
     //println!("req_tx_confirm ----> {}", url);
 
+    let xml_string = to_string(&data).unwrap();
+    let bytes: Vec<u8> = xml_string.into_bytes();
+    let compressed_data = compression::compress_data( &bytes );
+
+
     // Send the XML data in the request body
     let response = match client
         .post(url)
         .header("Content-Type", "application/xml")
-        .body(data)
+        .body(compressed_data)
         .send()
         .await
     {

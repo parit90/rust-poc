@@ -10,6 +10,7 @@
 // use crate::CLIENT;
 // use quick_xml::se::to_string;
 use crate::models;
+use crate::compression;
 
 // // Create a custom error type
 // #[derive(Debug)]
@@ -92,13 +93,21 @@ pub async fn validate_psp(
 
     //let url = app_data;
 
+    // compress the current data
+    // let data_string = to_string(&data).unwrap();
+    let xml_string = to_string(&data).unwrap();
+    let bytes = xml_string.into_bytes();
+    let compressed_data = compression::compress_data( &bytes );
+
+
     let response = client
         .post(app_data)
         .header("Content-Type", "application/xml")
-        .body(data)
+        .body(compressed_data)
         .send()
         .await
         .map_err(|e| CustomError(format!("Request error: {:?}", e)))?;
+    
 
     if response.status().is_success() {
         let response_body = response.text().await;

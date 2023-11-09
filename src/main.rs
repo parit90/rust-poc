@@ -19,6 +19,8 @@ mod credit_req;
 mod resp_pay;
 mod callback;
 mod kafka;
+mod compression;
+
 
 extern crate num_cpus;
 extern crate openssl;
@@ -155,7 +157,9 @@ async fn res_tx_conf_callback(
 ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     //println!("I am inside res_tx_conf_callback");
     // Call an asynchronous function and await its result
+    let res_tx_conf: models::ReqPay = compression::decompress_and_convert_to_struct(data.as_ref()).unwrap();
     let result = callback::res_tx_conf_callback(data.clone()).await;
+
    
     // Handle the result and create an appropriate response
     match result {
@@ -170,7 +174,7 @@ async fn res_tx_conf_callback(
             // };
             let producer = create_kafka_producer_if_needed().await?;
             let topic = "res-tx"; // Replace with your Kafka topic
-            let payload = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string"); /* Create a payload */;
+            let payload = String::from_utf8( compression::decompress_data(&data) ).expect("Failed to convert bytes to string"); /* Create a payload */;
 
             // Send data to Kafka and handle any errors
             match kafka::send_to_kafka(&producer, topic, payload.as_bytes()).await {

@@ -4,6 +4,7 @@ use reqwest::Client;
 use crate::models;
 use quick_xml::se::to_string;
 use std::fmt;
+use crate::compression;
 
 // Create a custom error type
 #[derive(Debug)]
@@ -42,10 +43,15 @@ pub async fn credit_req(
     //let url = "http://192.168.68.123:8080/creditreq";
     //println!("url = {:?}", url);
     // Send the XML data in the request body
+
+    let xml_string = to_string(&data).unwrap();
+    let bytes = xml_string.into_bytes();
+    let compressed_data = compression::compress_data( &bytes );
+
     let response = match client
         .post(app_data)
         .header("Content-Type", "application/xml")
-        .body(data)
+        .body(compressed_data)
         .send()
         .await
     {
