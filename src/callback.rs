@@ -1,6 +1,7 @@
 use crate::debit_req;
 use crate::models;
 use crate::resp_pay;
+use crate::compression;
 use crate::{credit_req, MyURLs};
 use actix_web::web::Data;
 use actix_web::{web, HttpResponse, Result};
@@ -9,13 +10,19 @@ use serde_xml_rs::from_str;
 use tokio::spawn;
 use std::sync::Arc;
 
+
 pub async fn debit_resp_callback(
     data: web::Bytes,
     client: &Client,
     app_data: &String,
 ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
-    // Deserialize the XML data into a Rust struct (e.g., models::respAuth::RespAuthDetail)
-    let debit_req_data: models::ReqPay = from_str(std::str::from_utf8(&data)?)?;
+
+    let debit_req_data: models::ReqPay = compression::decompress_and_convert_to_struct(data.as_ref()).unwrap();
+   
+    
+    // let xml_result = compression::convert_to_xml(&decompressed);
+
+    // from_str(std::str::from_utf8(&xml_result)?)?;
 
     // Process the received RespAuthDetail
     // You can add your logic here to handle the received data
@@ -59,8 +66,19 @@ pub async fn resp_auth_callback(
     // Deserialize the XML data into a Rust struct (e.g., models::respAuth::RespAuthDetail)
     // let data = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string");
     // let resp_auth_detail: models::ReqPay = from_str(&data).expect("Failed to parse XML data");
+
+
+    let resp_auth_detail: models::ReqPay = compression::decompress_and_convert_to_struct(data.as_ref()).unwrap();
     
-    let resp_auth_detail: models::ReqPay = from_str(std::str::from_utf8(&data)?)?;
+
+
+    // let decompressed = compression::decompress_data(body.as_ref());
+    // let xml_result = compression::convert_to_xml(&decompressed);
+
+    // // Deserialize the XML data into a Rust struct (e.g., models::respAuth::RespAuthDetail)
+    // let debit_req_data: models::ReqPay = from_str(std::str::from_utf8(&data)?)?;
+    
+    // let resp_auth_detail: models::ReqPay = from_str(std::str::from_utf8(&data)?)?;
 
     // Process the received RespAuthDetail
     // You can add your logic here to handle the received data
@@ -97,8 +115,19 @@ pub async fn credit_resp_callback(
 ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     //println!("credit_resp_callback");
     // Deserialize the XML data into a Rust struct (e.g., models::respAuth::RespAuthDetail)
-    let data = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string");
-    let debit_req_data: models::ReqPay = from_str(&data).expect("Failed to parse XML data");
+
+   
+    let credit_req_data: models::ReqPay = match compression::decompress_and_convert_to_struct(data.as_ref()) {
+        Ok(s) => s,
+        Err(e) => {
+            //eprintln!("Error: {}", e);
+            // Handle the error as needed
+            return Err(Box::new(e));
+        }
+    };
+
+    // let data = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string");
+    // let debit_req_data: models::ReqPay = from_str(&data).expect("Failed to parse XML data");
 
     // Process the received RespAuthDetail
     // You can add your logic here to handle the received data
@@ -109,10 +138,10 @@ pub async fn credit_resp_callback(
     let app_data = app_data.clone();
     let _app_data = app_data.clone();
 
-    let drd = debit_req_data.clone();
+    let drd = credit_req_data.clone();
 
     let _ = spawn(async move {
-        let _ = resp_pay::resp_pay(debit_req_data, &client_clone, &app_data.RESP_PAY_URL).await;
+        let _ = resp_pay::resp_pay(credit_req_data, &client_clone, &app_data.RESP_PAY_URL).await;
     });
 
     let _ = spawn(async move {
