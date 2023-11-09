@@ -37,6 +37,7 @@ pub async fn get_signature(
     {
         Ok(response) => {
             ////println!("response debit req {}", response.url());
+            println!("I am Here");
             response
         }
         Err(e) => {
@@ -50,8 +51,9 @@ pub async fn get_signature(
     if response.status().is_success() {
         // Successfully validated, use validated_xml
         let response_body = response.text().await?;
+        println!("{:?}",response_body);
         //println!("Response from debit req {}", url);
-        Ok("Debit Req Done".to_string())
+        Ok(response_body)
     } else {
         println!("The error is 2");
         // Handle the error, e.g., return an error response

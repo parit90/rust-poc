@@ -102,7 +102,7 @@ async fn process_xml1(data: web::Bytes, app_data: Data<MyURLs>) -> HttpResponse 
     //     }
     // }
 }
-async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, signature:Data<Signature>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     // Deserialize the XML data directly from a reader
     let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
@@ -116,6 +116,7 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
             // Clone the data_mutex for use in get_signature
         
             let signature = signature::get_signature(req_pay.clone(), &CLIENT).await;
+
             // Spawn the validation task
             let _validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(
@@ -212,6 +213,10 @@ pub struct MyURLs {
     VALIDATE_PSP_URL: String,
 }
 
+pub struct Signature {
+    signature:Option<String>
+}
+
 // async fn generate_signature_middleware<S>(
 //     req: ServiceRequest,
 //     srv: BoxService<ServiceRequest, ServiceResponse, Error>,
@@ -254,8 +259,15 @@ async fn main() -> std::io::Result<()> {
         DEBIT_REQ_URL,
         RESP_PAY_URL,
         REQ_TX_CONFIRM_URL,
-        VALIDATE_PSP_URL
+        VALIDATE_PSP_URL,
     });
+
+    let Signature = Data::new(
+        Signature{
+            signature:None
+        }
+    );
+
 
     std::env::set_var("RUST_LOG", "actix_web=debug");
     flame::start("main");
@@ -263,6 +275,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
         .app_data(Data::clone( &MyURLs))
+        .app_data(Data::clone( &Signature))
         .service(
             web::resource("/respauth/callback")
             .route(web::post().to(resp_auth_callback))
