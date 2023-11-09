@@ -106,11 +106,33 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
     // Deserialize the XML data directly from a reader
     let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
+    
+
 
     match req_pay {
         Ok(req_pay) => {
             // Clone the data for v
               // Create a Mutex to wrap the data
+            if !is_valid_addr(&req_pay.payee.Payee[0].addr){
+                return Ok(HttpResponse::BadRequest().body("Invalid name"));
+            }
+            if !is_valid_code(&req_pay.payee.Payee[0].code){
+                return Ok(HttpResponse::BadRequest().body("Invalid code"));
+            }
+            
+            if !is_valid_amount(&req_pay.payee.Payee[0].amount.value){
+                return Ok(HttpResponse::BadRequest().body("Invalid amount"));
+            }
+
+            if &req_pay.payee.Payee[0].ac[0].addr_type == "AADHAR" {
+                if !is_valid_aadhar(&req_pay.payee.Payee[0].ac[0].detail[0].value){
+                    return Ok(HttpResponse::BadRequest().body("Invalid amount"));
+                }
+            }
+
+            // if !is_valid_amount(&req_pay.payee.Payee[0]){
+            //     return Ok(HttpResponse::BadRequest().body("Invalid amount"));
+            // }
             let data_mutex = Arc::new(futures::lock::Mutex::new(data));
             
             // Clone the data_mutex for use in get_signature
@@ -141,7 +163,24 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
 }
 
 
+fn is_valid_addr(name: &str) -> bool{
+    name.contains('@')
+}
 
+fn is_valid_code(code: &str) -> bool{
+    code.chars().all(char::is_alphanumeric)
+}
+
+fn is_valid_amount(amount: &str) -> bool {
+    if let Ok(parsed_amount) = amount.parse::<f64>() {
+        return parsed_amount > 0.0;
+    }
+    false
+}
+
+fn is_valid_aadhar(details: &str) -> bool {
+    details.chars().all(char::is_alphanumeric)
+}
 
 async fn debit_resp_callback(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>>  {
     //println!("Debit resp callback : 5");
