@@ -126,18 +126,18 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
 
             if &req_pay.payee.Payee[0].ac[0].addr_type == "AADHAR" {
                 if !is_valid_aadhar(&req_pay.payee.Payee[0].ac[0].detail[0].value){
-                    return Ok(HttpResponse::BadRequest().body("Invalid amount"));
+                    return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
                 }
             }
 
             // if !is_valid_amount(&req_pay.payee.Payee[0]){
             //     return Ok(HttpResponse::BadRequest().body("Invalid amount"));
             // }
-            let data_mutex = Arc::new(futures::lock::Mutex::new(data));
+            // let data_mutex = Arc::new(futures::lock::Mutex::new(data));
             
-            // Clone the data_mutex for use in get_signature
+            // // Clone the data_mutex for use in get_signature
         
-            let signature = signature::get_signature(req_pay.clone(), &CLIENT).await;
+            // let signature = signature::get_signature(req_pay.clone(), &CLIENT).await;
             // Spawn the validation task
             let _validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(
@@ -251,25 +251,6 @@ pub struct MyURLs {
     VALIDATE_PSP_URL: String,
 }
 
-// async fn generate_signature_middleware<S>(
-//     req: ServiceRequest,
-//     srv: BoxService<ServiceRequest, ServiceResponse, Error>,
-// ) -> Result<ServiceResponse, Error>
-// where
-//     S: Service<ServiceRequest, Response = ServiceResponse, Error = Error> + 'static,
-// {
-//     // Generate the signature here
-//     if let Some(payload) = req.extensions().get::<String>() {
-//         if let Ok(signature) = generate_signature(payload) {
-//             // Add the generated signature to the request's extensions
-//             req.extensions_mut().insert(signature);
-//         }
-//     }
-
-//     // Continue processing the request
-//     let response = srv.call(req).await?;
-//     Ok(response)
-// }
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -281,13 +262,6 @@ async fn main() -> std::io::Result<()> {
     let REQ_TX_CONFIRM_URL = std::env::var("REQ_TX_CONFIRM").unwrap_or_default();
     let VALIDATE_PSP_URL = std::env::var("VALIDATE_PSP").unwrap_or_default();
 
-    // let contents = fs::read_to_string("/Users/sahilpant/.ssh/id_rsa")
-    //     .expect("Should have been able to read the file");
-
-    // println!("With text:\n{contents}");
-
-    
-
     let MyURLs = Data::new(MyURLs { 
         CREDIT_REQ_URL,
         DEBIT_REQ_URL,
@@ -296,8 +270,6 @@ async fn main() -> std::io::Result<()> {
         VALIDATE_PSP_URL
     });
 
-    std::env::set_var("RUST_LOG", "actix_web=debug");
-    flame::start("main");
 
     HttpServer::new(move || {
         App::new()
