@@ -101,8 +101,8 @@ pub async fn validate_psp(
         .map_err(|e| CustomError(format!("Request error: {:?}", e)))?;
 
     if response.status().is_success() {
-        let response_body = response.text().await;
-        Ok("Validated PSP Done".to_string())
+        let response_body = response.text().await.unwrap();
+        Ok(response_body)
     } else {
         Err(CustomError("Validation failed".to_string()))
     }

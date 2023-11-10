@@ -96,7 +96,7 @@ async fn process_xml1(data: web::Bytes, app_data: Data<MyURLs>) -> HttpResponse 
     //     }
     // }
 }
-async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, signature:Data<Signature>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
+async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<Sanitation>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     // Deserialize the XML data directly from a reader
     let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
@@ -127,7 +127,7 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, signature:Data<Si
             let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
 
             // Spawn the validation task
-            let _validate_task = spawn(async move {
+            let validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(
                     req_pay, 
                     &CLIENT,
@@ -137,7 +137,7 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, signature:Data<Si
             });
 
             // You can await the validation task here if you need to wait for it to complete
-            // validate_task.await;
+            let result = validate_task.await.unwrap();
 
             Ok(HttpResponse::Ok().body("XML data processed successfully"))
         }
@@ -188,6 +188,7 @@ async fn credit_resp_callback(data: web::Bytes, app_data: Data<MyURLs>) -> Resul
 
 async fn res_tx_conf_callback(
     data: web::Bytes,
+    sanitation:Data<Sanitation>
 ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     //println!("I am inside res_tx_conf_callback");
     // Call an asynchronous function and await its result
@@ -208,16 +209,21 @@ async fn res_tx_conf_callback(
             let topic = "res-tx"; // Replace with your Kafka topic
             let payload = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string"); /* Create a payload */;
 
-            // Send data to Kafka and handle any errors
-            match kafka::send_to_kafka(&producer, topic, payload.as_bytes()).await {
-                Ok(_) => {
-                    // If everything is successful, return an HTTP response
-                    Ok(HttpResponse::Ok().body("Success"))
+            if sanitation.use_kafka {
+                // Send data to Kafka and handle any errors
+                match kafka::send_to_kafka(&producer, topic, payload.as_bytes()).await {
+                    Ok(_) => {
+                        // If everything is successful, return an HTTP response
+                        Ok(HttpResponse::Ok().body("Success"))
+                    }
+                    Err(err) => {
+                        // If there's an error with Kafka, return an error response
+                        Err(err.into()) // Convert the Kafka error into the expected result type
+                    }
                 }
-                Err(err) => {
-                    // If there's an error with Kafka, return an error response
-                    Err(err.into()) // Convert the Kafka error into the expected result type
-                }
+            }
+            else {
+                Ok(HttpResponse::Ok().body("Success"))
             }
         }
         Err(err) => {
@@ -240,8 +246,10 @@ pub struct MyURLs {
     SIGNATURE_URL: String,
 }
 
-pub struct Signature {
-    signature:Option<String>
+pub struct Sanitation {
+    signature:Option<String>,
+    use_kafka:bool
+
 }
 
 
@@ -255,6 +263,7 @@ async fn main() -> std::io::Result<()> {
     let REQ_TX_CONFIRM_URL = std::env::var("REQ_TX_CONFIRM").unwrap_or_default();
     let VALIDATE_PSP_URL = std::env::var("VALIDATE_PSP").unwrap_or_default();
     let SIGNATURE_URL = std::env::var("SIGNATURE_URL").unwrap_or_default();
+    let USE_KAFKA = std::env::var("USE_KAFKA").unwrap_or_default().parse::<bool>().unwrap();
 
     let MyURLs = Data::new(MyURLs { 
         CREDIT_REQ_URL,
@@ -265,16 +274,17 @@ async fn main() -> std::io::Result<()> {
         SIGNATURE_URL
     });
 
-    let Signature = Data::new(
-        Signature{
-            signature:None
+    let Sanitation = Data::new(
+        Sanitation{
+            signature:None,
+            use_kafka:USE_KAFKA
         }
     );
 
     HttpServer::new(move || {
         App::new()
         .app_data(Data::clone( &MyURLs))
-        .app_data(Data::clone( &Signature))
+        .app_data(Data::clone( &Sanitation))
         .service(
             web::resource("/respauth/callback")
             .route(web::post().to(resp_auth_callback))
