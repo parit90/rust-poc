@@ -11,11 +11,11 @@ pub struct Payees {
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Payee {
     pub addr: String,
-    name: String,
+    pub name: String,
     seqNum: String,
     #[serde(rename = "type")]
     payee_type: String,
-    code: String,
+    pub code: String,
     #[serde(rename = "Institution")]
     institution: Institution,
     #[serde(rename = "Merchant")]
@@ -25,11 +25,11 @@ pub struct Payee {
     #[serde(rename = "Device")]
     device: Device,
     #[serde(rename = "Ac")]
-    ac: Vec<Ac>,
+    pub ac: Vec<Ac>,
     #[serde(rename = "Consent")]
     consent: Consent,
     #[serde(rename = "Amount")]
-    amount: Amount,
+    pub amount: Amount,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
@@ -106,15 +106,15 @@ pub struct Tag {
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Ac {
     #[serde(rename = "addrType")]
-    addr_type: String,
+    pub addr_type: String,
     #[serde(rename = "Detail")]
-    detail: Vec<Detail>,
+    pub detail: Vec<Detail>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Detail {
-    name: String,
-    value: String,
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
@@ -127,7 +127,7 @@ pub struct Consent {
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Amount {
-    value: String,
+    pub value: String,
     curr: String,
     #[serde(rename = "Split")]
     split: Vec<Split>,

@@ -1,8 +1,8 @@
 // use actix_service::boxed::BoxService;
-use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}, Error, dev::{Service,Transform,ServiceRequest, ServiceResponse}, HttpMessage, error::PayloadError, body::MessageBody};
-use futures::{StreamExt, Stream};
+use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}};
+
 use kafka::create_kafka_producer;
-use openssl::{sha::Sha256, pkey::PKey};
+
 use serde_xml_rs::{from_str, from_reader};
 // use quick_xml::se::to_string;
 use reqwest::{Client};
@@ -12,8 +12,6 @@ use dotenv::dotenv;
 use tokio::spawn;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
-
-use std::fs::File;
 
 mod models;
 mod validate_psp;
@@ -27,10 +25,6 @@ extern crate num_cpus;
 
 use rdkafka::error::KafkaError;
 use rdkafka::producer::FutureProducer;
-use std::sync::Arc;
-use openssl::rsa::Rsa;
-use openssl::sign::{Signer, Verifier};
-use openssl::hash::MessageDigest;
 
 use actix_web_lab::middleware::{Next, from_fn};
 
@@ -106,16 +100,31 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, signature:Data<Si
     // Deserialize the XML data directly from a reader
     let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
+    
+
 
     match req_pay {
         Ok(req_pay) => {
             // Clone the data for v
               // Create a Mutex to wrap the data
-            let data_mutex = Arc::new(futures::lock::Mutex::new(data));
+            if !is_valid_addr(&req_pay.payee.Payee[0].addr){
+                return Ok(HttpResponse::BadRequest().body("Invalid name"));
+            }
+            if !is_valid_code(&req_pay.payee.Payee[0].code){
+                return Ok(HttpResponse::BadRequest().body("Invalid code"));
+            }
             
-            // Clone the data_mutex for use in get_signature
+            if !is_valid_amount(&req_pay.payee.Payee[0].amount.value){
+                return Ok(HttpResponse::BadRequest().body("Invalid amount"));
+            }
+
+            if &req_pay.payee.Payee[0].ac[0].addr_type == "AADHAR" {
+                if !is_valid_aadhar(&req_pay.payee.Payee[0].ac[0].detail[0].value){
+                    return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
+                }
+            }
         
-            let signature = signature::get_signature(req_pay.clone(), &CLIENT).await;
+            let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
 
             // Spawn the validation task
             let _validate_task = spawn(async move {
@@ -142,7 +151,24 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, signature:Data<Si
 }
 
 
+fn is_valid_addr(name: &str) -> bool{
+    name.contains('@')
+}
 
+fn is_valid_code(code: &str) -> bool{
+    code.chars().all(char::is_alphanumeric)
+}
+
+fn is_valid_amount(amount: &str) -> bool {
+    if let Ok(parsed_amount) = amount.parse::<f64>() {
+        return parsed_amount > 0.0;
+    }
+    false
+}
+
+fn is_valid_aadhar(details: &str) -> bool {
+    details.chars().all(char::is_alphanumeric)
+}
 
 async fn debit_resp_callback(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>>  {
     //println!("Debit resp callback : 5");
@@ -211,31 +237,13 @@ pub struct MyURLs {
     RESP_PAY_URL: String,
     REQ_TX_CONFIRM_URL: String,
     VALIDATE_PSP_URL: String,
+    SIGNATURE_URL: String,
 }
 
 pub struct Signature {
     signature:Option<String>
 }
 
-// async fn generate_signature_middleware<S>(
-//     req: ServiceRequest,
-//     srv: BoxService<ServiceRequest, ServiceResponse, Error>,
-// ) -> Result<ServiceResponse, Error>
-// where
-//     S: Service<ServiceRequest, Response = ServiceResponse, Error = Error> + 'static,
-// {
-//     // Generate the signature here
-//     if let Some(payload) = req.extensions().get::<String>() {
-//         if let Ok(signature) = generate_signature(payload) {
-//             // Add the generated signature to the request's extensions
-//             req.extensions_mut().insert(signature);
-//         }
-//     }
-
-//     // Continue processing the request
-//     let response = srv.call(req).await?;
-//     Ok(response)
-// }
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
@@ -246,13 +254,7 @@ async fn main() -> std::io::Result<()> {
     let RESP_PAY_URL = std::env::var("RESP_PAY").unwrap_or_default();
     let REQ_TX_CONFIRM_URL = std::env::var("REQ_TX_CONFIRM").unwrap_or_default();
     let VALIDATE_PSP_URL = std::env::var("VALIDATE_PSP").unwrap_or_default();
-
-    // let contents = fs::read_to_string("/Users/sahilpant/.ssh/id_rsa")
-    //     .expect("Should have been able to read the file");
-
-    // println!("With text:\n{contents}");
-
-    
+    let SIGNATURE_URL = std::env::var("SIGNATURE_URL").unwrap_or_default();
 
     let MyURLs = Data::new(MyURLs { 
         CREDIT_REQ_URL,
@@ -260,6 +262,7 @@ async fn main() -> std::io::Result<()> {
         RESP_PAY_URL,
         REQ_TX_CONFIRM_URL,
         VALIDATE_PSP_URL,
+        SIGNATURE_URL
     });
 
     let Signature = Data::new(
@@ -267,10 +270,6 @@ async fn main() -> std::io::Result<()> {
             signature:None
         }
     );
-
-
-    std::env::set_var("RUST_LOG", "actix_web=debug");
-    flame::start("main");
 
     HttpServer::new(move || {
         App::new()

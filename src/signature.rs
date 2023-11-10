@@ -23,13 +23,13 @@ impl fmt::Display for CustomError {
 pub async fn get_signature(
     data: models::ReqPay,//Arc<Mutex<web::Bytes>>,
     client: &Client,
+    app_data: &String,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    println!("I am in get signature fn");
-    let url = "http://0.0.0.0:8082/generatesignature";
+
     // let data = data.lock().await;
     // Send the XML data in the request body
     let response = match client
-        .post(url)
+        .post(app_data)
         .header("Content-Type", "application/xml")
         .body(data)
         .send()
@@ -37,11 +37,9 @@ pub async fn get_signature(
     {
         Ok(response) => {
             ////println!("response debit req {}", response.url());
-            println!("I am Here");
             response
         }
         Err(e) => {
-            println!("The error is {:?}",e);
             // Handle the reqwest::Error and convert it to a CustomError
             let error_msg = format!("Request error: {:?}", e);
             return Err(Box::new(CustomError(error_msg)));
@@ -51,11 +49,9 @@ pub async fn get_signature(
     if response.status().is_success() {
         // Successfully validated, use validated_xml
         let response_body = response.text().await?;
-        println!("{:?}",response_body);
         //println!("Response from debit req {}", url);
         Ok(response_body)
     } else {
-        println!("The error is 2");
         // Handle the error, e.g., return an error response
         Err(Box::new(CustomError("Validation failed".to_string())))
     }
