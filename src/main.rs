@@ -1,7 +1,9 @@
 // use actix_service::boxed::BoxService;
-use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}};
+use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}, middleware::{self, Logger, Compress, NormalizePath}, dev::{Service, ServiceRequest}, HttpRequest};
 
+use futures::FutureExt;
 use kafka::create_kafka_producer;
+use env_logger::Env;
 
 use serde_xml_rs::{from_str, from_reader};
 // use quick_xml::se::to_string;
@@ -123,8 +125,11 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<S
                     return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
                 }
             }
-        
-            let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
+
+            if(sanitation.use_signature){
+                let signature = signature::get_signature(data, &CLIENT, &app_data.SIGNATURE_URL).await;
+                println!("{:?}",signature);
+            }
 
             // Spawn the validation task
             let validate_task = spawn(async move {
@@ -248,7 +253,8 @@ pub struct MyURLs {
 
 pub struct Sanitation {
     signature:Option<String>,
-    use_kafka:bool
+    use_kafka:bool,
+    use_signature:bool
 
 }
 
@@ -264,6 +270,7 @@ async fn main() -> std::io::Result<()> {
     let VALIDATE_PSP_URL = std::env::var("VALIDATE_PSP").unwrap_or_default();
     let SIGNATURE_URL = std::env::var("SIGNATURE_URL").unwrap_or_default();
     let USE_KAFKA = std::env::var("USE_KAFKA").unwrap_or_default().parse::<bool>().unwrap();
+    let SIGNATURE_SWITCH = std::env::var("SIGN_SWITCH").unwrap_or_default().parse::<bool>().unwrap();
 
     let MyURLs = Data::new(MyURLs { 
         CREDIT_REQ_URL,
@@ -277,12 +284,16 @@ async fn main() -> std::io::Result<()> {
     let Sanitation = Data::new(
         Sanitation{
             signature:None,
-            use_kafka:USE_KAFKA
+            use_kafka:USE_KAFKA,
+            use_signature:SIGNATURE_SWITCH
         }
     );
+    env_logger::init_from_env(Env::default().default_filter_or("info"));
 
     HttpServer::new(move || {
         App::new()
+        .wrap(Logger::default())
+        .wrap(Compress::default())
         .app_data(Data::clone( &MyURLs))
         .app_data(Data::clone( &Sanitation))
         .service(
@@ -310,7 +321,7 @@ async fn main() -> std::io::Result<()> {
                 .route(web::get().to(testcallback))
         )
     })
-    .bind("0.0.0.0:8080")?
+    .bind("0.0.0.0:8081")?
     .run()
     .await?;
     
