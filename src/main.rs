@@ -3,6 +3,7 @@ use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}};
 
 use kafka::create_kafka_producer;
 
+use models::ReqAuthDetails;
 use serde_xml_rs::{from_str, from_reader};
 // use quick_xml::se::to_string;
 use reqwest::{Client};
@@ -18,6 +19,7 @@ mod validate_psp;
 mod debit_req;
 mod credit_req;
 mod resp_pay;
+
 mod callback;
 mod kafka;
 mod signature;
@@ -27,7 +29,8 @@ use rdkafka::error::KafkaError;
 use rdkafka::producer::FutureProducer;
 
 use actix_web_lab::middleware::{Next, from_fn};
-
+mod req_auth_details_creator;
+use req_auth_details_creator::create_req_auth_details;
 
 
 // Create a custom error type
@@ -101,7 +104,9 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<S
     let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
     
-
+    // let reqAuthDetails = ReqAuthDetails {
+    //     head: &req_pay.head
+    // }   
 
     match req_pay {
         Ok(req_pay) => {
@@ -123,9 +128,11 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<S
                     return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
                 }
             }
-        
-            let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
+            //println!("----------{:?}",&req_pay.head);
+            let _reqAuthDetails = create_req_auth_details(&req_pay);  
 
+            let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
+            println!("====={:?}",signature);
             // Spawn the validation task
             let validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(

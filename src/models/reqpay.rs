@@ -40,11 +40,11 @@ pub struct ReqPay {
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Head {
-    ver: String,
-    ts: String,
-    orgId: String,
-    msgId: String,
-    prodType: String,
+    pub ver: String,
+    pub ts: String,
+    pub orgId: String,
+    pub msgId: String,
+    pub prodType: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
@@ -68,7 +68,7 @@ struct Score {
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct RiskScore {
+pub struct RiskScore {
     #[serde(rename = "Score")]
     scores: Vec<Score>,
 }
@@ -80,13 +80,13 @@ struct Rule {
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Rules {
+pub struct Rules {
     #[serde(rename = "Rule")]
     rules: Vec<Rule>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct QR {
+pub struct QR {
     qVer: String,
     ts: String,
     qrMedium: String,
@@ -98,18 +98,18 @@ struct QR {
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Txn {
-    id: String,
-    note: String,
-    custRef: String,
-    refId: String,
-    refUrl: String,
-    ts: String,
-    refCategory: String,
+    pub id: String,
+    pub note: String,
+    pub custRef: String,
+    pub refId: String,
+    pub refUrl: String,
+    pub ts: String,
+    pub refCategory: String,
     #[serde(rename = "type")]
-    tx_type: String,
-    RiskScore: RiskScore,
-    Rules: Rules,
-    QR: QR,
+    pub tx_type: String,
+    pub RiskScore: RiskScore,
+    pub Rules: Rules,
+    pub QR: QR,
 }
 
 impl Into<Body> for ReqPay {

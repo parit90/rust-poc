@@ -2,11 +2,13 @@
 
 use serde::{Deserialize, Serialize};
 pub mod reqpay;
+pub mod reqAuthDetails;
 
 pub use reqpay::respAuth;
 pub use reqpay::Payees;
 pub use reqpay::Payer;
 pub use reqpay::ReqPay;
+pub use reqAuthDetails::ReqAuthDetails;
 
 #[derive(Deserialize, Debug)]
 pub struct UserData {

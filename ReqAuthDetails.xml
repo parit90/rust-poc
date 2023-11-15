@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ns2:ReqAuthDetails xmlns:ns2="http://npci.org/upi/schema/" xmlns:ns3="http://npci.org/cm/schema/">
+<Head msgId="1vUWishpRrWldD4uKWLz" orgId="NPCI" ts="2022-10-29T11:38:56+05:30" ver="2.0"/>
+<Txn custRef="847482017170" id="0016zjNPq1rx1EeBh4tTIVJfewv133glB2e" initiationMode="00" note="PAY" purpose="54" refId="1" refUrl="http://upi" ts="2022-10-29T11:38:56+05:30" type="PAY">
+    <RiskScores/>
+</Txn>
+<Payees>
+    <Payee addr="5000006876@bankd" code="0000" name="@PayeeName" seqNum="1" type="PERSON">
+        <Amount curr="INR" value="400.00"/>
+    </Payee>
+</Payees>
+
+<Payer addr="5000006876@bankd" code="0000" name="vyas" seqNum="1" type="PERSON">
+    <Info>
+        <Identity id="0000000000000" type="AADHAAR" verifiedName="vyas"/>
+        <Rating verifiedAddress="TRUE"/>
+    </Info>
+    <Ac addrType="WALLET">
+        <Detail name="ACTYPE" value="WALLET"/>
+        <Detail name="WALLETADDRESS" value="1vUWishpRrWldD4uKWLz1vUWishpRrWldD4uKWLz"/>
+        <Detail name="TSPID" value="159022"/>
+    </Ac>
+    <Amount curr="INR" value="400.00"/>
+</Payer>
+</ns2:ReqAuthDetails>

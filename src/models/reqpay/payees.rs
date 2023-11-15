@@ -12,9 +12,9 @@ pub struct Payees {
 pub struct Payee {
     pub addr: String,
     pub name: String,
-    seqNum: String,
+    pub seqNum: String,
     #[serde(rename = "type")]
-    payee_type: String,
+    pub payee_type: String,
     pub code: String,
     #[serde(rename = "Institution")]
     institution: Institution,
@@ -128,9 +128,9 @@ pub struct Consent {
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Amount {
     pub value: String,
-    curr: String,
+    pub curr: String,
     #[serde(rename = "Split")]
-    split: Vec<Split>,
+    pub split: Vec<Split>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]

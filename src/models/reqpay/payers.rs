@@ -3,188 +3,188 @@ use serde::{Deserialize, Serialize};
 //======================================Payer=============================
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Merchant {
-    identifier: Identifier,
-    Ownership: Ownership,
-    Invoice: Invoice,
+pub struct Merchant {
+    pub identifier: Identifier,
+    pub Ownership: Ownership,
+    pub Invoice: Invoice,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Identifier {
-    subCode: String,
-    mid: String,
-    sid: String,
-    tid: String,
-    merchantType: String,
-    merchantGenre: String,
-    onBoardingType: String,
-    pinCode: String,
-    regIdNo: String,
-    tier: String,
-    merchantLoc: String,
-    merchantInstId: String,
+pub struct Identifier {
+    pub subCode: String,
+    pub mid: String,
+    pub sid: String,
+    pub tid: String,
+    pub merchantType: String,
+    pub merchantGenre: String,
+    pub onBoardingType: String,
+    pub pinCode: String,
+    pub regIdNo: String,
+    pub tier: String,
+    pub merchantLoc: String,
+    pub merchantInstId: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Ownership {
+pub struct Ownership {
     #[serde(rename = "type")]
-    ownership_type: String,
+    pub ownership_type: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Invoice {
-    name: String,
-    num: String,
-    date: String,
+pub struct Invoice {
+    pub name: String,
+    pub num: String,
+    pub date: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Institution {
+pub struct Institution {
     #[serde(rename = "type")]
-    institution_type: String,
-    route: String,
-    Name: Name,
-    Purpose: Purpose,
-    Originator: Originator,
-    Beneficiary: Beneficiary,
+    pub institution_type: String,
+    pub route: String,
+    pub Name: Name,
+    pub Purpose: Purpose,
+    pub Originator: Originator,
+    pub Beneficiary: Beneficiary,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Name {
-    value: String,
-    acNum: String,
+pub struct Name {
+    pub value: String,
+    pub acNum: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Purpose {
-    code: String,
-    note: String,
+pub struct Purpose {
+    pub code: String,
+    pub note: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Originator {
-    name: String,
+pub struct Originator {
+    pub name: String,
     #[serde(rename = "type")]
-    originator_type: String,
-    refNo: String,
-    Address: Address,
+    pub originator_type: String,
+    pub refNo: String,
+    pub Address: Address,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Address {
-    location: String,
-    city: String,
-    country: String,
-    geocode: String,
+pub struct Address {
+    pub location: String,
+    pub city: String,
+    pub country: String,
+    pub geocode: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Beneficiary {
-    name: String,
+pub struct Beneficiary {
+    pub name: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Info {
-    Identity: Identity,
-    Rating: Rating,
+pub struct Info {
+    pub Identity: Identity,
+    pub Rating: Rating,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Identity {
-    id: String,
+pub struct Identity {
+    pub id: String,
     #[serde(rename = "type")]
-    identity_type: String,
-    verifiedName: String,
+    pub identity_type: String,
+    pub verifiedName: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Rating {
-    VerifiedAddress: String,
+pub struct Rating {
+    pub VerifiedAddress: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Device {
-    Tag: Vec<PayerTag>,
+pub struct Device {
+    pub Tag: Vec<PayerTag>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct PayerTag {
-    name: String,
-    value: String,
+pub struct PayerTag {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Ac {
+pub struct Ac {
     #[serde(rename = "addrType")]
-    addr_type: String,
-    Detail: Vec<Detail>,
+    pub addr_type: String,
+    pub Detail: Vec<Detail>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Detail {
-    name: String,
-    value: String,
+pub struct Detail {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Consent {
-    name: String,
+pub struct Consent {
+    pub name: String,
     #[serde(rename = "type")]
-    consent_type: String,
-    value: String,
+    pub consent_type: String,
+    pub value: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Creds {
-    Cred: Vec<Cred>,
+pub struct Creds {
+    pub Cred: Vec<Cred>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Cred {
+pub struct Cred {
     #[serde(rename = "type")]
-    cred_type: String,
-    subType: String,
+    pub cred_type: String,
+    pub subType: String,
     // #[serde(rename = "MetaPyr")]
     // MetaPyr: MetaP,
-    Data: String,
+    pub Data: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct MetaP {
-    lk: String,
-    ac: String,
-    sa: String,
-    uid: String,
-    ver: String,
+pub struct MetaP {
+    pub lk: String,
+    pub ac: String,
+    pub sa: String,
+    pub uid: String,
+    pub ver: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Amount {
-    value: String,
-    curr: String,
-    Split: Vec<Split>,
+pub struct Amount {
+    pub value: String,
+    pub curr: String,
+    pub Split: Vec<Split>,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
-struct Split {
-    name: String,
-    value: String,
+pub struct Split {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Payer {
-    addr: String,
-    name: String,
-    seqNum: String,
+    pub addr: String,
+    pub name: String,
+    pub seqNum: String,
     #[serde(rename = "type")]
-    payer_type: String,
-    code: String,
-    Merchant: Merchant,
-    Institution: Institution,
-    Info: Info,
-    Device: Device,
-    Ac: Vec<Ac>,
-    Consent: Consent,
-    Creds: Creds,
-    Amount: Amount,
+    pub payer_type: String,
+    pub code: String,
+    pub Merchant: Merchant,
+    pub Institution: Institution,
+    pub Info: Info,
+    pub Device: Device,
+    pub Ac: Vec<Ac>,
+    pub Consent: Consent,
+    pub Creds: Creds,
+    pub Amount: Amount,
 }
