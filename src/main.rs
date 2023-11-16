@@ -23,6 +23,7 @@ mod resp_pay;
 mod callback;
 mod kafka;
 mod signature;
+mod sign;
 extern crate num_cpus;
 
 use rdkafka::error::KafkaError;
@@ -131,8 +132,10 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<S
             //println!("----------{:?}",&req_pay.head);
             let _reqAuthDetails = create_req_auth_details(&req_pay);  
 
-            let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
-            println!("====={:?}",signature);
+            // let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
+            let enable_signature = sanitation.enable_signature;  // Set this based on your switch logic
+            let signature = sign::get_signature(data, enable_signature).await;
+            // println!("====={:?}",signature);
             // Spawn the validation task
             let validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(
@@ -255,8 +258,8 @@ pub struct MyURLs {
 
 pub struct Sanitation {
     signature:Option<String>,
-    use_kafka:bool
-
+    use_kafka:bool,
+    enable_signature : bool
 }
 
 
@@ -271,6 +274,7 @@ async fn main() -> std::io::Result<()> {
     let VALIDATE_PSP_URL = std::env::var("VALIDATE_PSP").unwrap_or_default();
     let SIGNATURE_URL = std::env::var("SIGNATURE_URL").unwrap_or_default();
     let USE_KAFKA = std::env::var("USE_KAFKA").unwrap_or_default().parse::<bool>().unwrap();
+    let ENABLE_SIGNATURE = std::env::var("ENABLE_SIGNATURE").unwrap_or_default().parse::<bool>().unwrap();
 
     let MyURLs = Data::new(MyURLs { 
         CREDIT_REQ_URL,
@@ -284,7 +288,8 @@ async fn main() -> std::io::Result<()> {
     let Sanitation = Data::new(
         Sanitation{
             signature:None,
-            use_kafka:USE_KAFKA
+            use_kafka:USE_KAFKA,
+            enable_signature : ENABLE_SIGNATURE
         }
     );
 

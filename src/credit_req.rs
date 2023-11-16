@@ -50,7 +50,7 @@ pub async fn credit_req(
         .await
     {
         Ok(response) => {
-            print!("{}", response.url());
+            // print!("{}", response.url());
             response
         }
         Err(e) => {
