@@ -19,11 +19,12 @@ mod validate_psp;
 mod debit_req;
 mod credit_req;
 mod resp_pay;
-
+mod http_utils;
 mod callback;
 mod kafka;
 mod signature;
 mod sign;
+mod custom_error;
 extern crate num_cpus;
 
 use rdkafka::error::KafkaError;

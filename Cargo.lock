@@ -2125,6 +2125,7 @@ dependencies = [
  "futures",
  "lazy_static 1.4.0",
  "num_cpus",
+ "once_cell",
  "openssl",
  "quick-xml",
  "rand",
