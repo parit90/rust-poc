@@ -39,8 +39,8 @@ fn encrypt(data: &[u8]) -> Option<Vec<u8>> {
 }
 
 pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> String {
-
     if !enable_signature {
+        // println!("Signature disabled");
       return String::new() ; 
     }
 

@@ -3,6 +3,7 @@ use crate::models::reqAuthDetails::{ReqAuthDetails, Head, Txn, Payee, Amount, Pa
 
 
 pub fn create_req_auth_details(req_pay: &ReqPay) -> ReqAuthDetails {
+    // println!("Inside create_req_auth_details");
     ReqAuthDetails {
         head: Head {
             msg_id: req_pay.head.msgId.clone(),
