@@ -38,10 +38,10 @@ fn encrypt(data: &[u8]) -> Option<Vec<u8>> {
     Some(pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, &data[..]).ok()?)
 }
 
-pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> Vec<u8> {
+pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> String {
 
     if !enable_signature {
-      return Vec::new() ; 
+      return String::new() ; 
     }
 
     let _data = String::from_utf8(data.to_vec()).unwrap();
@@ -49,17 +49,22 @@ pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> Vec<u8> {
         Ok(sig) => sig,
         Err(err) => {
             eprintln!("Error computing SHA256: {:?}", err);
-            Vec::new() // Return an empty vector or handle the error accordingly
+            return String::new() // Return an empty vector or handle the error accordingly
         }
     };
 
     match encrypt(&signature) {
-        Some(result) => result,
+        Some(encrypted_signature) =>{
+            let signature_string: String = encrypted_signature.iter().map(|byte| format!("{:02X}", byte)).collect();
+            signature_string
+        } ,
         None => {
             eprintln!("Error encrypting signature");
-            Vec::new() // Return an empty vector or handle the error accordingly
+            String::new() // Return an empty vector or handle the error accordingly
         }
     }
+
+
 }
 
 
