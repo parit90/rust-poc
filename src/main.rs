@@ -112,24 +112,28 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<S
 
     match req_pay {
         Ok(req_pay) => {
-            // Clone the data for v
-              // Create a Mutex to wrap the data
-            if !is_valid_addr(&req_pay.payee.Payee[0].addr){
-                return Ok(HttpResponse::BadRequest().body("Invalid name"));
-            }
-            if !is_valid_code(&req_pay.payee.Payee[0].code){
-                return Ok(HttpResponse::BadRequest().body("Invalid code"));
-            }
-            
-            if !is_valid_amount(&req_pay.payee.Payee[0].amount.value){
-                return Ok(HttpResponse::BadRequest().body("Invalid amount"));
-            }
 
-            if &req_pay.payee.Payee[0].ac[0].addr_type == "AADHAR" {
-                if !is_valid_aadhar(&req_pay.payee.Payee[0].ac[0].detail[0].value){
-                    return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
+            if(sanitation.validation_switch) {
+                // println!("Validation");
+                if !is_valid_addr(&req_pay.payee.Payee[0].addr){
+                    return Ok(HttpResponse::BadRequest().body("Invalid name"));
+                }
+                if !is_valid_code(&req_pay.payee.Payee[0].code){
+                    return Ok(HttpResponse::BadRequest().body("Invalid code"));
+                }
+                
+                if !is_valid_amount(&req_pay.payee.Payee[0].amount.value){
+                    return Ok(HttpResponse::BadRequest().body("Invalid amount"));
+                }
+    
+                if &req_pay.payee.Payee[0].ac[0].addr_type == "AADHAR" {
+                    if !is_valid_aadhar(&req_pay.payee.Payee[0].ac[0].detail[0].value){
+                        return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
+                    }
                 }
             }
+            // Clone the data for v
+              // Create a Mutex to wrap the data
             //println!("----------{:?}",&req_pay.head);
             let _reqAuthDetails = create_req_auth_details(&req_pay);  
 
@@ -260,7 +264,8 @@ pub struct MyURLs {
 pub struct Sanitation {
     signature:Option<String>,
     use_kafka:bool,
-    enable_signature : bool
+    enable_signature : bool,
+    validation_switch:bool
 }
 
 
@@ -276,6 +281,8 @@ async fn main() -> std::io::Result<()> {
     let SIGNATURE_URL = std::env::var("SIGNATURE_URL").unwrap_or_default();
     let USE_KAFKA = std::env::var("USE_KAFKA").unwrap_or_default().parse::<bool>().unwrap();
     let ENABLE_SIGNATURE = std::env::var("ENABLE_SIGNATURE").unwrap_or_default().parse::<bool>().unwrap();
+    let ENABLE_SIGNATURE = std::env::var("ENABLE_SIGNATURE").unwrap_or_default().parse::<bool>().unwrap();
+    let VALIDATION_SWITCH = std::env::var("VALIDATION_SWITCH").unwrap_or_default().parse::<bool>().unwrap();
 
     let MyURLs = Data::new(MyURLs { 
         CREDIT_REQ_URL,
@@ -290,40 +297,41 @@ async fn main() -> std::io::Result<()> {
         Sanitation{
             signature:None,
             use_kafka:USE_KAFKA,
-            enable_signature : ENABLE_SIGNATURE
+            enable_signature : ENABLE_SIGNATURE,
+            validation_switch : VALIDATION_SWITCH
         }
     );
 
     HttpServer::new(move || {
         App::new()
-        .app_data(Data::clone( &MyURLs))
-        .app_data(Data::clone( &Sanitation))
-        .service(
-            web::resource("/respauth/callback")
-            .route(web::post().to(resp_auth_callback))
-        )
-        .service(
-            web::resource("/debitresp/callback")
-            .route(web::post().to(debit_resp_callback))
-        )
-        .service(
-            web::resource("/reqpay")
-                .route(web::post().to(process_xml))
-        )
-        .service(
-            web::resource("/creditresp/callback")
-                .route(web::post().to(credit_resp_callback))
-        )
-        .service(
-            web::resource("/restxconfirm/callback")
-                .route(web::post().to(res_tx_conf_callback))
-        )
-        .service(
-            web::resource("/test/get")
-                .route(web::get().to(testcallback))
-        )
+            .app_data(Data::clone( &MyURLs))
+            .app_data(Data::clone( &Sanitation))
+            .service(
+                web::resource("/respauth/callback")
+                    .route(web::post().to(resp_auth_callback))
+            )
+            .service(
+                web::resource("/debitresp/callback")
+                    .route(web::post().to(debit_resp_callback))
+            )
+            .service(
+                web::resource("/reqpay")
+                    .route(web::post().to(process_xml))
+            )
+            .service(
+                web::resource("/creditresp/callback")
+                    .route(web::post().to(credit_resp_callback))
+            )
+            .service(
+                web::resource("/restxconfirm/callback")
+                    .route(web::post().to(res_tx_conf_callback))
+            )
+            .service(
+                web::resource("/test/get")
+                    .route(web::get().to(testcallback))
+            )
     })
-    .bind("0.0.0.0:8080")?
+    .bind("0.0.0.0:8081")?
     .run()
     .await?;
     
