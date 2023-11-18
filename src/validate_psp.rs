@@ -90,10 +90,10 @@ pub async fn validate_psp(
     let validated_xml =
         to_string(&data).map_err(|e| CustomError(format!("Serialization error: {:?}", e)))?;
 
-    //let url = app_data;
+    let url = app_data;
 
     let response = client
-        .post(app_data)
+        .post(url)
         .header("Content-Type", "application/xml")
         .body(data)
         .send()

@@ -37,13 +37,13 @@ pub async fn credit_req(
     // let client = Client::new();
 
     // let url = std::env::var("CREDIT_REQ").unwrap_or_default();
-    // let url = app_data;
+    let url = app_data;
     //println!("credit{}", url);
     //let url = "http://192.168.68.123:8080/creditreq";
     //println!("url = {:?}", url);
     // Send the XML data in the request body
     let response = match client
-        .post(app_data)
+        .post(url)
         .header("Content-Type", "application/xml")
         .body(data)
         .send()

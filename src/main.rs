@@ -19,13 +19,8 @@ mod credit_req;
 mod resp_pay;
 mod callback;
 mod kafka;
-
+mod sign;
 extern crate num_cpus;
-extern crate openssl;
-
-use openssl::rsa::Rsa;
-use openssl::sign::{Signer, Verifier};
-use openssl::hash::MessageDigest;
 
 use rdkafka::error::KafkaError;
 use rdkafka::producer::FutureProducer;
@@ -101,7 +96,7 @@ async fn process_xml1(data: web::Bytes, app_data: Data<MyURLs>) -> HttpResponse 
 
 async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     // Deserialize the XML data directly from a reader
-    let reader = data.reader();
+    let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
     
     match req_pay {
@@ -109,6 +104,10 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
             // Clone the data for validation tasks
             // let req_pay_clone = req_pay.clone();
             // let app_data_clone = app_data.clone();
+
+            let enable_signature = true;
+            let signature = sign::get_signature( data , enable_signature).await;
+            println!("====={:?}",signature);
 
             // Spawn the validation task
             let validate_task = spawn(async move {
@@ -119,6 +118,8 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpRes
                     eprintln!("Error while validating PSP: {:?}", error);
                 }
             });
+
+            
 
             // You can await the validation task here if you need to wait for it to complete
             // validate_task.await;
@@ -206,8 +207,7 @@ pub struct MyURLs {
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-
-    // let num_threads = num_cpus::get();
+    let num_threads = num_cpus::get();
     ////println!("Number of CPU threads: {}", num_threads);
 
     let CREDIT_REQ_URL = std::env::var("CREDIT_REQ").unwrap_or_default(); 
@@ -224,6 +224,9 @@ async fn main() -> std::io::Result<()> {
         REQ_TX_CONFIRM_URL,
         VALIDATE_PSP_URL
     });
+
+    std::env::set_var("RUST_LOG", "actix_web=debug");
+    flame::start("main");
 
     HttpServer::new(move || {
         App::new()
@@ -253,10 +256,14 @@ async fn main() -> std::io::Result<()> {
                 .route(web::get().to(testcallback))
         )
     })
-    .workers(8)
     .bind("0.0.0.0:8080")?
     .run()
     .await?;
+    flame::end("main");
+
+    // Dump the Flamegraph data to a file.
+    let output_file = File::create("flamegraph-output.html").unwrap();
+    flame::dump_html(output_file).unwrap();
     
     Ok(())
 }

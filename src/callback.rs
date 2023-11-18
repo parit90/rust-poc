@@ -7,7 +7,6 @@ use actix_web::{web, HttpResponse, Result};
 use reqwest::Client;
 use serde_xml_rs::from_str;
 use tokio::spawn;
-use std::sync::Arc;
 
 pub async fn debit_resp_callback(
     data: web::Bytes,
@@ -15,7 +14,8 @@ pub async fn debit_resp_callback(
     app_data: &String,
 ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     // Deserialize the XML data into a Rust struct (e.g., models::respAuth::RespAuthDetail)
-    let debit_req_data: models::ReqPay = from_str(std::str::from_utf8(&data)?)?;
+    let data = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string");
+    let debit_req_data: models::ReqPay = from_str(&data).expect("Failed to parse XML data");
 
     // Process the received RespAuthDetail
     // You can add your logic here to handle the received data
@@ -28,7 +28,7 @@ pub async fn debit_resp_callback(
     // });
 
     let client_clone = client.clone(); // Clone the client reference
-    let app_data = Arc::new(app_data.clone());
+    let app_data = app_data.clone();
 
     let validate_task = spawn(async move {
         if let Err(err) = credit_req::credit_req(debit_req_data, &client_clone, &app_data).await {
@@ -57,10 +57,8 @@ pub async fn resp_auth_callback(
 ) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     //println!("resp_auth_callback: 3");
     // Deserialize the XML data into a Rust struct (e.g., models::respAuth::RespAuthDetail)
-    // let data = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string");
-    // let resp_auth_detail: models::ReqPay = from_str(&data).expect("Failed to parse XML data");
-    
-    let resp_auth_detail: models::ReqPay = from_str(std::str::from_utf8(&data)?)?;
+    let data = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string");
+    let resp_auth_detail: models::ReqPay = from_str(&data).expect("Failed to parse XML data");
 
     // Process the received RespAuthDetail
     // You can add your logic here to handle the received data
@@ -68,7 +66,7 @@ pub async fn resp_auth_callback(
     // Example: Print the received data
 
     let client_clone = client.clone(); // Clone the client reference
-    let app_data = Arc::new(app_data.clone());
+    let app_data = app_data.clone();
 
     let validate_task = spawn(async move {
         let _ = debit_req::debit_req(resp_auth_detail, &client_clone, &app_data).await;
