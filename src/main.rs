@@ -1,37 +1,36 @@
-// use actix_service::boxed::BoxService;
 use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}};
-
 use kafka::create_kafka_producer;
-
-use models::ReqAuthDetails;
 use serde_xml_rs::{from_str, from_reader};
+use models::ReqAuthDetails;
+mod req_auth_details_creator;
+use req_auth_details_creator::create_req_auth_details;
+
+mod validate_request;
+use validate_request::validate_req_pay;
 // use quick_xml::se::to_string;
-use reqwest::{Client};
-use std::{fmt, fs, pin::Pin};
+use reqwest::{Client, Error};
+use std::fmt;
 //use std::io;
 use dotenv::dotenv;
 use tokio::spawn;
 use lazy_static::lazy_static;
 use std::sync::Mutex;
+use flame;
+use std::fs::File;
 
 mod models;
 mod validate_psp;
 mod debit_req;
 mod credit_req;
 mod resp_pay;
-
 mod callback;
 mod kafka;
-mod signature;
 mod sign;
 extern crate num_cpus;
 
 use rdkafka::error::KafkaError;
 use rdkafka::producer::FutureProducer;
 
-use actix_web_lab::middleware::{Next, from_fn};
-mod req_auth_details_creator;
-use req_auth_details_creator::create_req_auth_details;
 
 
 // Create a custom error type
@@ -65,81 +64,45 @@ pub async fn create_kafka_producer_if_needed() -> Result<FutureProducer, KafkaEr
     Ok(producer.as_ref().unwrap().clone())
 }
 
-async fn process_xml1(data: web::Bytes, app_data: Data<MyURLs>) -> HttpResponse {
-    // ////println!("Process_xml:: 1 {:?}", app_data.VALIDATE_PSP_URL);
-    // Deserialize the XML data into a Rust struct
-    let data = String::from_utf8(data.to_vec()).expect("Failed to convert bytes to string");
-    let req_pay: models::ReqPay = from_str(&data).expect("Failed to parse XML data");
-    let payee = &req_pay;
-    // let payee_xml = to_string(&payee).expect("Failed to serialize payee to XML");
-    // let payer = &req_pay.payer;
-    // // Process the user data as needed
-    // //println!("Received XML data: {:?}", payee_xml);
-    
-    // let validate_task = spawn(async move {
-    //     drop(validate_psp::validate_psp(req_pay, &CLIENT, &app_data.VALIDATE_PSP_URL).await);
-    // });
-
-    let validate_task = spawn(async move {
-        if let Err(error) = validate_psp::validate_psp(req_pay, 
-            &CLIENT,
-            &app_data.VALIDATE_PSP_URL).await {
-            eprintln!("Error while validating PSP: {:?}", error);
-        }
-    });
-    
-    HttpResponse::Ok().body("XML data processed successfully")
-    // match validate_psp::validate_psp(payee).await {
-    //     Ok(validated_xml) => {
-    //         // Successfully validated, use validated_xml
-    //         HttpResponse::Ok().body("XML data processed successfully")
-    //     }
-    //     Err(error) => {
-    //         // Handle the error, e.g., return an error response
-    //         HttpResponse::InternalServerError().body(format!("Error: {:?}", error))
-    //     }
-    // }
-}
 async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<Sanitation>) -> Result<HttpResponse, Box<dyn std::error::Error>> {
     // Deserialize the XML data directly from a reader
     let reader = data.clone().reader();
     let req_pay: Result<models::ReqPay, serde_xml_rs::Error> = from_reader(reader);
     
-    // let reqAuthDetails = ReqAuthDetails {
-    //     head: &req_pay.head
-    // }   
-
     match req_pay {
         Ok(req_pay) => {
+            // Clone the data for validation tasks
+            // let req_pay_clone = req_pay.clone();
+            // let app_data_clone = app_data.clone();
+
+            // if !is_valid_addr(&req_pay.payee.Payee[0].addr){
+            //     return Ok(HttpResponse::BadRequest().body("Invalid name"));
+            // }
+            // if !is_valid_code(&req_pay.payee.Payee[0].code){
+            //     return Ok(HttpResponse::BadRequest().body("Invalid code"));
+            // }
+            
+            // if !is_valid_amount(&req_pay.payee.Payee[0].amount.value){
+            //     return Ok(HttpResponse::BadRequest().body("Invalid amount"));
+            // }
+
+            // if &req_pay.payee.Payee[0].ac[0].addr_type == "AADHAR" {
+            //     if !is_valid_aadhar(&req_pay.payee.Payee[0].ac[0].detail[0].value){
+            //         return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
+            //     }
+            // }
 
             if(sanitation.validation_switch) {
-                // println!("Validation");
-                if !is_valid_addr(&req_pay.payee.Payee[0].addr){
-                    return Ok(HttpResponse::BadRequest().body("Invalid name"));
-                }
-                if !is_valid_code(&req_pay.payee.Payee[0].code){
-                    return Ok(HttpResponse::BadRequest().body("Invalid code"));
-                }
-                
-                if !is_valid_amount(&req_pay.payee.Payee[0].amount.value){
-                    return Ok(HttpResponse::BadRequest().body("Invalid amount"));
-                }
-    
-                if &req_pay.payee.Payee[0].ac[0].addr_type == "AADHAR" {
-                    if !is_valid_aadhar(&req_pay.payee.Payee[0].ac[0].detail[0].value){
-                        return Ok(HttpResponse::BadRequest().body("Invalid aadhar"));
-                    }
+                if let Err(error_msg) = validate_request::validate_req_pay(&req_pay) {
+                    return Ok(HttpResponse::BadRequest().body(error_msg));
                 }
             }
-            // Clone the data for v
-              // Create a Mutex to wrap the data
-            //println!("----------{:?}",&req_pay.head);
-            let _reqAuthDetails = create_req_auth_details(&req_pay);  
-
-            // let signature = signature::get_signature(req_pay.clone(), &CLIENT, &app_data.SIGNATURE_URL).await;
-            let enable_signature = sanitation.enable_signature;  // Set this based on your switch logic
-            let signature = sign::get_signature(data, enable_signature).await;
+            let signature = sign::get_signature( data , sanitation.enable_signature).await;
             // println!("====={:?}",signature);
+            if(sanitation.payload_transform_switch){
+                let _reqAuthDetails = create_req_auth_details(&req_pay);  
+            }
+
             // Spawn the validation task
             let validate_task = spawn(async move {
                 if let Err(error) = validate_psp::validate_psp(
@@ -150,8 +113,10 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<S
                 }
             });
 
+            
+
             // You can await the validation task here if you need to wait for it to complete
-            let result = validate_task.await.unwrap();
+            // validate_task.await;
 
             Ok(HttpResponse::Ok().body("XML data processed successfully"))
         }
@@ -164,25 +129,6 @@ async fn process_xml(data: web::Bytes, app_data: Data<MyURLs>, sanitation:Data<S
     }
 }
 
-
-fn is_valid_addr(name: &str) -> bool{
-    name.contains('@')
-}
-
-fn is_valid_code(code: &str) -> bool{
-    code.chars().all(char::is_alphanumeric)
-}
-
-fn is_valid_amount(amount: &str) -> bool {
-    if let Ok(parsed_amount) = amount.parse::<f64>() {
-        return parsed_amount > 0.0;
-    }
-    false
-}
-
-fn is_valid_aadhar(details: &str) -> bool {
-    details.chars().all(char::is_alphanumeric)
-}
 
 async fn debit_resp_callback(data: web::Bytes, app_data: Data<MyURLs>) -> Result<HttpResponse, Box<dyn std::error::Error>>  {
     //println!("Debit resp callback : 5");
@@ -257,39 +203,39 @@ pub struct MyURLs {
     RESP_PAY_URL: String,
     REQ_TX_CONFIRM_URL: String,
     VALIDATE_PSP_URL: String,
-    SIGNATURE_URL: String,
 }
 
 pub struct Sanitation {
     signature:Option<String>,
     use_kafka:bool,
     enable_signature : bool,
-    validation_switch:bool
+    validation_switch:bool,
+    payload_transform_switch:bool
 }
-
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+    let num_threads = num_cpus::get();
+    ////println!("Number of CPU threads: {}", num_threads);
 
     let CREDIT_REQ_URL = std::env::var("CREDIT_REQ").unwrap_or_default(); 
     let DEBIT_REQ_URL = std::env::var("DEBIT_REQ").unwrap_or_default();
     let RESP_PAY_URL = std::env::var("RESP_PAY").unwrap_or_default();
     let REQ_TX_CONFIRM_URL = std::env::var("REQ_TX_CONFIRM").unwrap_or_default();
     let VALIDATE_PSP_URL = std::env::var("VALIDATE_PSP").unwrap_or_default();
-    let SIGNATURE_URL = std::env::var("SIGNATURE_URL").unwrap_or_default();
+    let ENABLE_SIGNATURE = std::env::var("ENABLE_SIGNATURE").unwrap_or_default().parse::<bool>().unwrap();
     let USE_KAFKA = std::env::var("USE_KAFKA").unwrap_or_default().parse::<bool>().unwrap();
-    let ENABLE_SIGNATURE = std::env::var("ENABLE_SIGNATURE").unwrap_or_default().parse::<bool>().unwrap();
-    let ENABLE_SIGNATURE = std::env::var("ENABLE_SIGNATURE").unwrap_or_default().parse::<bool>().unwrap();
     let VALIDATION_SWITCH = std::env::var("VALIDATION_SWITCH").unwrap_or_default().parse::<bool>().unwrap();
+    let PAYLOAD_TRANSFORM_SWITCH = std::env::var("PAYLOAD_TRANSFORM_SWITCH").unwrap_or_default().parse::<bool>().unwrap();
+    
 
     let MyURLs = Data::new(MyURLs { 
         CREDIT_REQ_URL,
         DEBIT_REQ_URL,
         RESP_PAY_URL,
         REQ_TX_CONFIRM_URL,
-        VALIDATE_PSP_URL,
-        SIGNATURE_URL
+        VALIDATE_PSP_URL
     });
 
     let Sanitation = Data::new(
@@ -297,42 +243,51 @@ async fn main() -> std::io::Result<()> {
             signature:None,
             use_kafka:USE_KAFKA,
             enable_signature : ENABLE_SIGNATURE,
-            validation_switch : VALIDATION_SWITCH
+            validation_switch : VALIDATION_SWITCH,
+            payload_transform_switch:PAYLOAD_TRANSFORM_SWITCH
         }
     );
 
+    std::env::set_var("RUST_LOG", "actix_web=debug");
+    flame::start("main");
+
     HttpServer::new(move || {
         App::new()
-            .app_data(Data::clone( &MyURLs))
-            .app_data(Data::clone( &Sanitation))
-            .service(
-                web::resource("/respauth/callback")
-                    .route(web::post().to(resp_auth_callback))
-            )
-            .service(
-                web::resource("/debitresp/callback")
-                    .route(web::post().to(debit_resp_callback))
-            )
-            .service(
-                web::resource("/reqpay")
-                    .route(web::post().to(process_xml))
-            )
-            .service(
-                web::resource("/creditresp/callback")
-                    .route(web::post().to(credit_resp_callback))
-            )
-            .service(
-                web::resource("/restxconfirm/callback")
-                    .route(web::post().to(res_tx_conf_callback))
-            )
-            .service(
-                web::resource("/test/get")
-                    .route(web::get().to(testcallback))
-            )
+        .app_data(Data::clone( &MyURLs))
+        .app_data(Data::clone( &Sanitation))
+        .service(
+            web::resource("/respauth/callback")
+            .route(web::post().to(resp_auth_callback))
+        )
+        .service(
+            web::resource("/debitresp/callback")
+            .route(web::post().to(debit_resp_callback))
+        )
+        .service(
+            web::resource("/reqpay")
+                .route(web::post().to(process_xml))
+        )
+        .service(
+            web::resource("/creditresp/callback")
+                .route(web::post().to(credit_resp_callback))
+        )
+        .service(
+            web::resource("/restxconfirm/callback")
+                .route(web::post().to(res_tx_conf_callback))
+        )
+        .service(
+            web::resource("/test/get")
+                .route(web::get().to(testcallback))
+        )
     })
-    .bind("0.0.0.0:8081")?
+    .bind("0.0.0.0:8083")?
     .run()
     .await?;
+    flame::end("main");
+
+    // Dump the Flamegraph data to a file.
+    let output_file = File::create("flamegraph-output.html").unwrap();
+    flame::dump_html(output_file).unwrap();
     
     Ok(())
 }

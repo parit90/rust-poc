@@ -90,10 +90,10 @@ pub async fn validate_psp(
     let validated_xml =
         to_string(&data).map_err(|e| CustomError(format!("Serialization error: {:?}", e)))?;
 
-    //let url = app_data;
+    let url = app_data;
 
     let response = client
-        .post(app_data)
+        .post(url)
         .header("Content-Type", "application/xml")
         .body(data)
         .send()
@@ -101,8 +101,8 @@ pub async fn validate_psp(
         .map_err(|e| CustomError(format!("Request error: {:?}", e)))?;
 
     if response.status().is_success() {
-        let response_body = response.text().await.unwrap();
-        Ok(response_body)
+        let response_body = response.text().await;
+        Ok("Validated PSP Done".to_string())
     } else {
         Err(CustomError("Validation failed".to_string()))
     }
