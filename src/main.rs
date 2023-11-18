@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}};
+use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}, middleware::{Logger}};
 use kafka::create_kafka_producer;
 use serde_xml_rs::{from_str, from_reader};
 use models::ReqAuthDetails;
@@ -28,7 +28,7 @@ mod kafka;
 mod sign;
 extern crate num_cpus;
 
-use rdkafka::error::KafkaError;
+use rdkafka::{error::KafkaError, ClientContext};
 use rdkafka::producer::FutureProducer;
 
 
@@ -216,7 +216,11 @@ pub struct Sanitation {
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    let num_threads = num_cpus::get();
+
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "actix_web=info");
+    }
+    env_logger::init();
     ////println!("Number of CPU threads: {}", num_threads);
 
     let CREDIT_REQ_URL = std::env::var("CREDIT_REQ").unwrap_or_default(); 
@@ -247,12 +251,9 @@ async fn main() -> std::io::Result<()> {
             payload_transform_switch:PAYLOAD_TRANSFORM_SWITCH
         }
     );
-
-    std::env::set_var("RUST_LOG", "actix_web=debug");
-    flame::start("main");
-
     HttpServer::new(move || {
         App::new()
+        .wrap(Logger::default())
         .app_data(Data::clone( &MyURLs))
         .app_data(Data::clone( &Sanitation))
         .service(
@@ -283,11 +284,11 @@ async fn main() -> std::io::Result<()> {
     .bind("0.0.0.0:8083")?
     .run()
     .await?;
-    flame::end("main");
+    // flame::end("main");
 
-    // Dump the Flamegraph data to a file.
-    let output_file = File::create("flamegraph-output.html").unwrap();
-    flame::dump_html(output_file).unwrap();
+    // // Dump the Flamegraph data to a file.
+    // let output_file = File::create("flamegraph-output.html").unwrap();
+    // flame::dump_html(output_file).unwrap();
     
     Ok(())
 }
