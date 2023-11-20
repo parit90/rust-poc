@@ -42,7 +42,7 @@ pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> String {
     if !enable_signature {
       return String::new() ; 
     }
-    println!("PayLoad Signed");
+    // println!("PayLoad Signed");
     let _data = String::from_utf8(data.to_vec()).unwrap();
     let signature = match compute_sha256(&_data) {
         Ok(sig) => sig,

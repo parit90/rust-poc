@@ -1,7 +1,7 @@
 use crate::models;
 
 pub fn validate_req_pay(req_pay: &models::ReqPay) -> Result<(), &'static str> {
-    println!("validate_req_pay");
+    // println!("validate_req_pay");
     if !is_valid_addr(&req_pay.payee.Payee[0].addr) {
         return Err("Invalid name");
     }
