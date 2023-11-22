@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ns2:RespPay xmlns:ns2="http://npci.org/upi/schema/">
-<Head ver="2.0" orgId="NPCI" ts="2022-10-29T11:38:56+05:30" msgId="1vUWishpRrWldD4uKWLz1vUWishpRrWldD4uKWLz" prodType="PSO"/>
-<Txn id="1vUWishpRrWldD4uKWLz1vUWishpRrWldD4uKWLz" note="PAY" refId="1" custRef="796448358178" refUrl="http://upi" ts="2022-11-02T01:52:41-04:00" purpose="53" type="CREDIT" subType="PAY" initiationMode="00"/>
-<Resp reqMsgId="1vUWishpRrWldD4uKWLz1vUWishpRrWldD4uKWLz" result="SUCCESS">
-    <Ref type="PAYEE" seqNum="1" addr="1000527951@bankd" regName="bankd" code="0000" settAmount="200.00" settCurrency="INR" approvalNum="888888" respCode="00" walletAddress="0xb433asdasdad3qqeefev" tspId="159022"/>
-</Resp>
-</ns2:RespPay>

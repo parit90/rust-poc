@@ -14,4 +14,4 @@ COPY . .
 RUN cargo build --profile release
 
 # Specify the command to run your application
-CMD ["./target/release/upi_poc"]
+CMD ["RUST_LOG=info ./target/release/rust-pro"]

@@ -2,21 +2,15 @@
 
 use serde::{Deserialize, Serialize};
 //import module
-pub mod payees;
-pub mod payers;
-pub mod respAuth;
+// mod payees;
+// mod payers;
+// pub mod respAuth;
 
 //import public struct
-pub use payees::Payees;
-pub use payers::Payer;
+pub use super::payees::Payees;
+pub use super::payers::Payer;
 use reqwest::Body;
 
-// Testing purpose
-// #[derive(Deserialize, Debug)]
-// pub struct UserData {
-//     name: String,
-//     email: String,
-// }
 
 /**
  * ==========================================================

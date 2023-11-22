@@ -1,14 +1,13 @@
-use actix_web::{web, Result, web::{Data, Buf}};
+use actix_web::{web, Result};
 use sha2::{Sha256, Digest};
-use rsa::{Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey, pkcs8::{EncodePrivateKey, LineEnding, EncodePublicKey, DecodePublicKey, DecodePrivateKey}};
-use std::sync::{Once, ONCE_INIT};
+use rsa::{Pkcs1v15Encrypt, RsaPublicKey, pkcs8:: DecodePublicKey};
+use std::sync::Once;
 use std::error::Error;
-use std::fmt;
+
 
 
 static mut PUBLIC_KEY: Option<RsaPublicKey> = None;
-static INIT: Once = ONCE_INIT;
-
+static INIT: Once = Once::new();
 
 fn initialize_public_key() {
     INIT.call_once(|| {
@@ -38,11 +37,35 @@ fn encrypt(data: &[u8]) -> Option<Vec<u8>> {
     Some(pub_key.encrypt(&mut rng, Pkcs1v15Encrypt, &data[..]).ok()?)
 }
 
+// pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> Vec<u8> {
+
+//     if !enable_signature {
+//       return Vec::new() ; 
+//     }
+
+//     let _data = String::from_utf8(data.to_vec()).unwrap();
+//     let signature = match compute_sha256(&_data) {
+//         Ok(sig) => sig,
+//         Err(err) => {
+//             eprintln!("Error computing SHA256: {:?}", err);
+//             Vec::new() // Return an empty vector or handle the error accordingly
+//         }
+//     };
+
+//     match encrypt(&signature) {
+//         Some(result) => result,
+//         None => {
+//             eprintln!("Error encrypting signature");
+//             Vec::new() // Return an empty vector or handle the error accordingly
+//         }
+//     }
+// }
+
+
 pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> String {
     if !enable_signature {
       return String::new() ; 
     }
-    // println!("PayLoad Signed");
     let _data = String::from_utf8(data.to_vec()).unwrap();
     let signature = match compute_sha256(&_data) {
         Ok(sig) => sig,
@@ -67,13 +90,9 @@ pub async fn get_signature(data: web::Bytes,enable_signature: bool) -> String {
 }
 
 
-#[derive(Debug)]
-struct CustomError(String);
 
-impl std::error::Error for CustomError {}
+// let enable_signature = true;  // Set this based on your switch logic
+// let signature = get_signature(data, enable_signature).await;
 
-impl fmt::Display for CustomError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "CustomError: {}", self.0)
-    }
-}
+
+
