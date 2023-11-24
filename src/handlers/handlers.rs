@@ -13,7 +13,7 @@ use crate::utils::{make_request , get_signature};
 use crate::validation::validate_parameters;
 
 use crate::models::ReqPay;
-
+use crate::config::APP_CONFIG;
 
 pub async fn handle_reqpay(data: web::Bytes) -> Result<HttpResponse, actix_web::Error> {
     let xml_data = String::from_utf8(data.to_vec())
@@ -40,12 +40,12 @@ pub async fn handle_reqpay(data: web::Bytes) -> Result<HttpResponse, actix_web::
 
               // Validation succeeded, spawn make_request in the background
               spawn(async move {
-                // let body_string = to_string(&reqpay).unwrap();
+                let body_string = to_string(&reqpay).unwrap();
                 
                 // let body_string = String::from("test");
                 // println!("{:?}", body_string);
 
-                if let Err(api_err) = make_request("http://10.166.0.8:8081/reqauthdetails", "POST", xml_data).await {
+                if let Err(api_err) = make_request(&APP_CONFIG.validate_psp, "POST", body_string).await {
                     eprintln!("Error calling external API in the background: {:?}", api_err);
                     // Handle the error as needed
                 }
@@ -87,7 +87,7 @@ pub async fn handle_resp_auth_details(data: web::Bytes) -> Result<HttpResponse, 
               // Validation succeeded, spawn make_request in the background
                 spawn(async move {
                     // let body_string = to_string(&reqpay).unwrap();
-                    if let Err(api_err) = make_request("http://10.166.0.8:8081/debitreq", "POST", xml_data).await {
+                    if let Err(api_err) = make_request(&APP_CONFIG.debit_req, "POST", xml_data).await {
                         eprintln!("Error calling external API in the background: {:?}", api_err);
                         // Handle the error as needed
                     }
@@ -128,7 +128,7 @@ pub async fn handle_debit_resp(data: web::Bytes) -> Result<HttpResponse, actix_w
               // Validation succeeded, spawn make_request in the background
               spawn(async move {
                 // let body_string = to_string(&reqpay).unwrap();
-                if let Err(api_err) = make_request("http://10.166.0.8:8082/creditreq", "POST", xml_data).await {
+                if let Err(api_err) = make_request(&APP_CONFIG.credit_req, "POST", xml_data).await {
                     eprintln!("Error calling external API in the background: {:?}", api_err);
                     // Handle the error as needed
                 }
@@ -167,7 +167,7 @@ pub async fn handle_credit_resp(data: web::Bytes) -> Result<HttpResponse, actix_
               // Validation succeeded, spawn make_request in the background
               spawn(async move {
                 // let body_string = to_string(&reqpay).unwrap();
-                if let Err(api_err) = make_request("http://10.166.0.8:8082/reqtxconfirm", "POST", xml_data).await {
+                if let Err(api_err) = make_request(&APP_CONFIG.req_tx_confirm, "POST", xml_data).await {
                     eprintln!("Error calling external API in the background: {:?}", api_err);
                     // Handle the error as needed
                 }
@@ -201,7 +201,7 @@ pub async fn handle_resp_txn_confirm(data: web::Bytes) -> Result<HttpResponse, a
 
             spawn(async move {
                 // let body_string = to_string(&reqpay).unwrap();
-                if let Err(api_err) = make_request("http://10.166.0.8:8081/resppay", "POST", xml_data).await {
+                if let Err(api_err) = make_request(&APP_CONFIG.resp_pay, "POST", xml_data).await {
                     eprintln!("Error calling external API in the background: {:?}", api_err);
                     // Handle the error as needed
                 }

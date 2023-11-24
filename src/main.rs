@@ -12,13 +12,21 @@ mod handlers;
 mod validation;
 mod utils;
 mod models;
+mod config;
 
+use dotenv::dotenv;
+use crate::config::APP_CONFIG;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
 
+    dotenv().ok();
     env_logger::init();
 
+ 
+    let address = format!("{}:{}", APP_CONFIG.host, APP_CONFIG.port);
+
+    
     HttpServer::new(|| {
         App::new()
             .route("/reqpay", web::post().to(handlers::handle_reqpay))
@@ -30,7 +38,7 @@ async fn main() -> std::io::Result<()> {
             // Add more routes as needed
     })
 
-    .bind("192.168.68.147:8080")?
+    .bind(address)?
     .run()
     .await
     
