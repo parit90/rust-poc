@@ -15,6 +15,7 @@ use crate::validation::validate_parameters;
 use crate::models::ReqPay;
 use crate::config::APP_CONFIG;
 
+
 pub async fn handle_reqpay(data: web::Bytes) -> Result<HttpResponse, actix_web::Error> {
     let xml_data = String::from_utf8(data.to_vec())
         .map_err(|_| actix_web::error::ErrorBadRequest("Invalid UTF-8 data"))?;
@@ -40,12 +41,12 @@ pub async fn handle_reqpay(data: web::Bytes) -> Result<HttpResponse, actix_web::
 
               // Validation succeeded, spawn make_request in the background
               spawn(async move {
-                let body_string = to_string(&reqpay).unwrap();
+                // let body_string = to_string(&reqpay).unwrap();
                 
                 // let body_string = String::from("test");
                 // println!("{:?}", body_string);
 
-                if let Err(api_err) = make_request(&APP_CONFIG.validate_psp, "POST", body_string).await {
+                if let Err(api_err) = make_request(&APP_CONFIG.validate_psp, "POST", xml_data).await {
                     eprintln!("Error calling external API in the background: {:?}", api_err);
                     // Handle the error as needed
                 }

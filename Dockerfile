@@ -13,6 +13,7 @@ COPY . .
 # Build your Rust application using Cargo
 RUN cargo build --profile release
 
+RUN RUST_LOG=info
 
 # Specify the command to run your application
 CMD ["./target/release/rust-pro"]
