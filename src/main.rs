@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}};
+use actix_web::{web, App, HttpResponse, HttpServer, Result, web::{Data, Buf}, middleware::Logger};
 use kafka::create_kafka_producer;
 use serde_xml_rs::{from_str, from_reader};
 use models::ReqAuthDetails;
@@ -217,10 +217,10 @@ pub struct Sanitation {
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
 
-    // if std::env::var_os("RUST_LOG").is_none() {
-    //     std::env::set_var("RUST_LOG", "actix_web=info");
-    // }
-    // env_logger::init();
+    if std::env::var_os("RUST_LOG").is_none() {
+        std::env::set_var("RUST_LOG", "actix_web=info");
+    }
+    env_logger::init();
     ////println!("Number of CPU threads: {}", num_threads);
 
     let CREDIT_REQ_URL = std::env::var("CREDIT_REQ").unwrap_or_default(); 
@@ -253,7 +253,7 @@ async fn main() -> std::io::Result<()> {
     );
     HttpServer::new(move || {
         App::new()
-        // .wrap(Logger::default())
+        .wrap(Logger::default())
         .app_data(Data::clone( &MyURLs))
         .app_data(Data::clone( &Sanitation))
         .service(
