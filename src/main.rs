@@ -253,7 +253,7 @@ async fn main() -> std::io::Result<()> {
     );
     HttpServer::new(move || {
         App::new()
-        .wrap(Logger::default())
+        .wrap(Logger::new("%a %{User-Agent}i %D %T" ))
         .app_data(Data::clone( &MyURLs))
         .app_data(Data::clone( &Sanitation))
         .service(
